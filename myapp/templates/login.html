@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCPO Dashboard</title>
+    <link rel="icon" href="{% static 'images/logo.png' %}" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Added Google Fonts for more formal typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 for beautiful notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { DEFAULT: '#1a56db', hover: '#1e429f' },
+                        navy: { DEFAULT: '#0d1b36', dark: '#000000' },
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'glow': 'glow 2s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+                        glow: { '0%, 100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)' }, '50%': { boxShadow: '0 0 30px rgba(59, 130, 246, 0.8)' } },
+                    },
+                    fontFamily: {
+                        'serif': ['Libre Baskerville', 'serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .glass-effect {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .glass-effect:hover {
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .bg-image-custom {
+            position: relative;
+            background-image: url('{% static "images/background.jpeg" %}');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        .bg-image-custom::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.9), rgba(15, 23, 42, 0.95));
+            z-index: 0;
+        }
+        .bg-gradient-custom {
+            background: linear-gradient(180deg, #0d1b36 0%, #000000 100%);
+        }
+        .content-wrapper {
+            position: relative;
+            z-index: 2;
+        }
+
+        .underline-custom {
+            position: relative;
+            display: inline-block;
+            color: #3b82f6;
+            padding-bottom: 4px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .underline-custom:hover {
+            color: #60a5fa;
+        }
+
+        .underline-custom::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            bottom: 0;
+            left: 0;
+            background: #3b82f6;
+            transform-origin: right;
+            transform: scaleX(1);
+            transition: transform 0.3s ease;
+        }
+
+        .underline-custom:hover::after {
+            transform-origin: left;
+            transform: scaleX(1.1);
+        }
+
+        /* Shield-like button with enhanced shine effect */
+        .shield-button {
+            position: relative;
+            background: linear-gradient(135deg, #1e40af, #3b82f6, #60a5fa, #3b82f6, #1e40af);
+            background-size: 400% 100%;
+            color: white;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            overflow: hidden;
+            z-index: 1;
+            cursor: default;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            animation: shieldShine 3s ease-in-out infinite;
+        }
+
+        .shield-button::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            transform: rotate(30deg);
+            animation: shieldGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes shieldShine {
+            0% { background-position: 0% 50%; box-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
+            50% { background-position: 100% 50%; box-shadow: 0 0 25px rgba(59, 130, 246, 0.9); }
+            100% { background-position: 0% 50%; box-shadow: 0 0 15px rgba(59, 130, 246, 0.6); }
+        }
+
+        @keyframes shieldGlow {
+            0% { opacity: 0.5; transform: rotate(30deg) translateY(10%); }
+            50% { opacity: 0.8; transform: rotate(30deg) translateY(0%); }
+            100% { opacity: 0.5; transform: rotate(30deg) translateY(10%); }
+        }
+
+        /* Updated footer styles with formal typography */
+        .footer {
+            background: linear-gradient(to bottom, transparent, rgba(3, 4, 23, 0.9));
+            padding: 1.5rem 0;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            font-family: 'Inter', 'sans-serif';
+            letter-spacing: 0.01em;
+            font-weight: 300;
+            margin-top: auto;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 0.5rem;
+            height: 0.5rem;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+
+        .copyright {
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        /* Input focus effects */
+        .input-focus-effect {
+            transition: all 0.3s ease;
+        }
+
+        .input-focus-effect:focus {
+            transform: translateY(-2px);
+        }
+
+        /* Loading spinner for login button */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Prevent browser autofill from changing background color */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px rgba(15, 23, 42, 0.8) inset !important;
+            -webkit-text-fill-color: white !important;
+            transition: background-color 5000s ease-in-out 0s;
+            caret-color: white;
+            color: white !important;
+        }
+        
+        /* Additional fix for Firefox and other browsers */
+        input {
+            color-scheme: dark;
+        }
+        
+        /* Force text color to remain white */
+        .force-white-text {
+            color: white !important;
+        }
+
+        /* Shiny text effect with gradient */
+        .gradient-text {
+            background: linear-gradient(to right,
+                #ffffff,
+                #93c5fd,
+                #60a5fa,
+                #3b82f6,
+                #60a5fa,
+                #93c5fd,
+                #ffffff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            -webkit-text-fill-color: transparent;
+            animation: shine 3s linear infinite;
+            text-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+            display: inline-block;
+        }
+
+        .golden-text {
+            background: linear-gradient(to right,
+                #fef08a,
+                #fbbf24,
+                #f59e0b,
+                #d97706,
+                #f59e0b,
+                #fbbf24,
+                #fef08a);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            -webkit-text-fill-color: transparent;
+            animation: shine 3s linear infinite;
+            text-shadow: 0 0 5px rgba(252, 211, 77, 0.3);
+            display: inline-block;
+        }
+
+        @keyframes shine {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-image-custom">
+    <div class="min-h-screen content-wrapper flex flex-col">
+
+        <!-- Header -->
+        <header class="py-6 animate-fade-in container mx-auto px-8">
+            <div class="flex items-center">
+                <div>
+                    <img src="{% static 'images/logo.png' %}" alt="BCPO Logo" class="w-24 h-24">
+                </div>
+                <span class="ml-6 px-4 py-2 text-xl text-white bg-blue-600/20 rounded-full flex items-center backdrop-blur-sm">
+                    <i class="fas fa-shield-alt mr-2"></i> Official Crime Dashboard
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-8 flex-grow flex flex-col lg:flex-row items-start justify-between gap-8">
+            <!-- Left Section -->
+            <div class="max-w-2xl space-y-8">
+                <div class="space-y-6 animate-slide-up">
+                    <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
+                        <span class="gradient-text">Butuan City</span><br>
+                        <span class="gradient-text">Police</span> <span class="golden-text">Office</span>
+                    </h1>
+                    <p class="text-xl text-gray-300 leading-relaxed max-w-xl">
+                        Home of the brave, friendly and peace-centered police force, dedicated to serving the community with honor and integrity.
+                    </p>
+                </div>
+
+                <div class="shield-button animate-slide-up group">
+                    <i class="fas fa-shield-alt mr-2 group-hover:rotate-12 transition-transform"></i> Crime Rate Prediction System
+                </div>
+
+                <div class="flex gap-12 animate-slide-up">
+                    <span class="underline-custom">Service</span>
+                    <span class="underline-custom">Honor</span>
+                    <span class="underline-custom">Justice</span>
+                </div>
+            </div>
+
+            <!-- Login Section - Restored glass effect with new icons -->
+            <div class="w-full max-w-md animate-fade-in -mt-8">
+                <div class="glass-effect rounded-2xl p-8 text-white animate-glow">
+                    <div class="text-center mb-6">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600/20 rounded-full mb-4">
+                            <i class="fas fa-user-shield text-2xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-semibold">Secure Access</h2>
+                        <p class="text-gray-400 mt-2">Enter your credentials to log in</p>
+                    </div>
+
+                    <form id="loginForm" method="post" action="{% url 'login' %}" class="space-y-5">
+                        {% csrf_token %}
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-300">Username</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                    <i class="far fa-user"></i>
+                                </span>
+                                <input type="text" name="username" id="username" required
+                                       class="w-full pl-10 px-4 py-3 bg-transparent border border-blue-500/30 rounded-lg focus:ring-2 focus:ring-blue-400/50 text-white force-white-text placeholder-gray-400 input-focus-effect"
+                                       placeholder="Enter your username">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input type="password" name="password" id="password" required
+                                       class="w-full pl-10 px-4 py-3 bg-transparent border border-blue-500/30 rounded-lg focus:ring-2 focus:ring-blue-400/50 text-white force-white-text placeholder-gray-400 input-focus-effect"
+                                       placeholder="Enter your password">
+                                <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-300">
+                                    <i class="far fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="flex items-center">
+                                <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <label for="remember-me" class="ml-2 block text-sm text-gray-300">Remember me</label>
+                            </div>
+                        </div>
+                        <button type="submit" id="loginButton" class="w-full py-3 bg-blue-600 rounded-lg hover:bg-blue-700 flex justify-center items-center transition-all duration-300 hover:shadow-lg">
+                            <span>Log In</span>
+                            <i class="fas fa-sign-in-alt ml-2"></i>
+                            <div id="loginSpinner" class="spinner ml-2"></div>
+                        </button>
+                    </form>
+
+                    {% if messages %}
+                    <div class="mt-4">
+                        {% for message in messages %}
+                        <div class="p-3 {% if message.tags == 'error' %}bg-red-500/20 text-red-200{% else %}bg-green-500/20 text-green-200{% endif %} rounded-lg">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="system-status">
+                <span class="status-dot"></span>
+                <span>System Status: Online</span>
+            </div>
+            <div class="copyright">
+                © <span id="currentYear"></span> Butuan City Police Office •<br>
+               Malvar Circle, Brgy. Holy Redeemer, Butuan City
+        </footer>
+
+    </div>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Handle autofill text color
+        document.addEventListener('DOMContentLoaded', function() {
+            // Force white text color for autofilled inputs
+            const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
+            inputs.forEach(input => {
+                // Check on load
+                setTimeout(() => {
+                    if (input.value) {
+                        input.style.color = 'white';
+                    }
+                }, 100);
+                
+                // Check on input
+                input.addEventListener('input', function() {
+                    this.style.color = 'white';
+                });
+            });
+        });
+
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // Login form submission with SweetAlert
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                Swal.fire({
+                    title: 'Missing Information',
+                    text: 'Please enter both username and password',
+                    icon: 'warning',
+                    confirmButtonColor: '#3b82f6'
+                });
+                return;
+            }
+
+            // Show loading spinner
+            document.getElementById('loginButton').querySelector('span').textContent = 'Logging in';
+            document.getElementById('loginSpinner').style.display = 'block';
+
+            // Simulate loading (remove this in production and use the actual form submission)
+            Swal.fire({
+                title: 'Authenticating...',
+                html: 'Verifying your credentials',
+                timer: 1500,
+                timerProgressBar: true,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            }).then(() => {
+                // In a real implementation, you would check for authentication success here
+                // For now, we'll just submit the form
+                this.submit();
+            });
+        });
+
+        // Check for Django messages and display with SweetAlert
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags != "success" or "logged out" not in message|lower %}
+                Swal.fire({
+                    title: '{{ message.tags|title }}',
+                    text: "{{ message }}",
+                    icon: '{% if message.tags == "error" %}error{% else %}success{% endif %}',
+                    confirmButtonColor: '#3b82f6'
+                });
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        // If there's an error parameter in the URL, show an error message
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('error')) {
+            Swal.fire({
+                title: 'Authentication Failed',
+                text: 'Invalid username or password. Please try again.',
+                icon: 'error',
+                confirmButtonColor: '#3b82f6'
+            });
+        }
+    </script>
+    <!-- Add this script at the end of the body, just before the closing </body> tag -->
+    <script>
+        // Prevent page caching for security
+        window.onpageshow = function(event) {
+            if (event.persisted) {
+                // Page was loaded from cache (back/forward button)
+                window.location.reload();
+            }
+        };
+
+        // Disable browser back button caching
+        window.onload = function() {
+            if (window.history && window.history.pushState) {
+                window.history.pushState('forward', null, window.location.href);
+                window.onpopstate = function() {
+                    window.history.pushState('forward', null, window.location.href);
+                };
+            }
+        };
+    </script>
+</body>
+</html>

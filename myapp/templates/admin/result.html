@@ -1,0 +1,5473 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS for maps -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<!-- Heatmap plugin CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<!-- Leaflet Fullscreen plugin CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/2.4.0/Control.FullScreen.css" />
+<!-- Chart.js for data visualization -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css">
+<!-- Custom CSS -->
+<style>
+:root {
+    --primary-color: #162854; /* Darker navy blue color */
+    --primary-light: #2563eb; /* Changed to medium blue */
+    --primary-dark: #1e40af; /* Changed to darker blue */
+    --secondary-color: #0ea5e9;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --success-color: #10b981;
+    --light-color: #f3f4f6;
+    --dark-color: #1e293b;
+    --border-radius: 0.75rem;
+    --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --transition: all 0.25s ease;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+    line-height: 1.6;
+}
+
+.dashboard-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.dashboard-header {
+    background: linear-gradient(135deg, rgba(30, 58, 138, 1) 0%, rgba(37, 99, 235, 0.8) 100%); /* Updated gradient */
+    color: white;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1.75rem;
+    box-shadow: var(--box-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm32 63c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+    opacity: 0.3;
+}
+
+.dashboard-header h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    position: relative;
+    letter-spacing: -0.025em;
+}
+
+.dashboard-header p {
+    font-size: 1.125rem;
+    opacity: 0.9;
+    max-width: 700px;
+    position: relative;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.75rem;
+}
+
+.stat-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.75rem;
+    box-shadow: var(--box-shadow);
+    display: flex;
+    flex-direction: column;
+    transition: var(--transition);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.stat-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+
+.stat-card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-card-icon {
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+}
+
+.stat-card-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--dark-color);
+    letter-spacing: -0.025em;
+}
+
+.stat-card-trend {
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.trend-up {
+    color: var(--danger-color);
+}
+
+.trend-down {
+    color: var(--success-color);
+}
+
+.trend-neutral {
+    color: #6b7280;
+}
+
+.card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.75rem;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: var(--transition);
+}
+
+.card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(249, 250, 251, 0.5);
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    color: var(--dark-color);
+}
+
+.card-title-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--primary-color);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.map-container {
+    height: 500px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.map-controls {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.map-control-btn {
+    padding: 8px 16px;
+    background-color: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--primary-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.map-control-btn:hover {
+    background-color: #f8fafc;
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.map-control-btn svg {
+    width: 16px;
+    height: 16px;
+    color: var(--primary-color);
+}
+
+.map-control-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.map-control-btn.active svg {
+    color: white;
+}
+
+.chart-container {
+    position: relative;
+    height: 350px;
+    width: 100%;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 1.75rem;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.75rem;
+}
+
+.severity-indicator {
+    height: 0.5rem;
+    border-radius: 9999px;
+    margin-top: 0.75rem;
+    background: linear-gradient(90deg, var(--success-color) 0%, var(--warning-color) 50%, var(--danger-color) 100%);
+}
+
+.severity-high {
+    background-color: var(--danger-color);
+}
+
+.severity-medium {
+    background-color: var(--warning-color);
+}
+
+.severity-low {
+    background-color: var(--success-color);
+}
+
+.filter-section {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.75rem;
+    margin-bottom: 1.75rem;
+    box-shadow: var(--box-shadow);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.filter-header {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--dark-color);
+}
+
+/* Updated filter form to be in a single line */
+.filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 150px;
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 0.375rem;
+    color: #4b5563;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    background-color: #f9fafb;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+    background-color: white;
+}
+
+.btn {
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+    background-color: #0c1a38; /* Even darker on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.btn-outline {
+    background-color: white;
+    border: 1px solid #d1d5db;
+    color: #4b5563;
+}
+
+.btn-outline:hover:not(:disabled) {
+    background-color: #f3f4f6;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pattern-list, .recommendation-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pattern-item, .recommendation-item {
+    padding: 1.25rem 0;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.pattern-item:last-child, .recommendation-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.pattern-item:first-child, .recommendation-item:first-child {
+    padding-top: 0;
+}
+
+.pattern-icon, .recommendation-icon {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--primary-color);
+}
+
+.pattern-text, .recommendation-text {
+    flex-grow: 1;
+    font-size: 1rem;
+    color: #4b5563;
+}
+
+.location-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.location-table th, .location-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.location-table th {
+    font-weight: 600;
+    color: #4b5563;
+    font-size: 0.95rem;
+    background-color: rgba(249, 250, 251, 0.5);
+}
+
+.location-table td {
+    font-size: 0.95rem;
+}
+
+.location-table tr:hover {
+    background-color: rgba(249, 250, 251, 0.7);
+}
+
+.severity-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.page-item {
+    display: inline-block;
+}
+
+.page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #d1d5db;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: var(--transition);
+    color: #4b5563;
+}
+
+.page-link:hover {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.page-link.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.page-link.disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.tab-container {
+    margin-bottom: 1.75rem;
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -ms-overflow-style: none;
+}
+
+.tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.tabs::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.3);
+    border-radius: 9999px;
+}
+
+.tab {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition);
+    white-space: nowrap;
+    color: #6b7280;
+}
+
+.tab:hover {
+    color: var(--primary-color);
+}
+
+.tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background-color: rgba(22, 40, 84, 0.05);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Custom popup styles */
+.crime-popup {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 300px;
+}
+
+.crime-popup-header {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: var(--primary-color);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: 8px;
+}
+
+.crime-popup-info {
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    color: #4b5563;
+    display: flex;
+    align-items: flex-start;
+}
+
+.crime-popup-info svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    color: var(--primary-color);
+    opacity: 0.7;
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+
+.crime-popup-severity {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+    margin-top: 8px;
+}
+
+/* Custom map control buttons */
+.custom-map-control {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.custom-map-control:hover {
+    background-color: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.custom-map-control svg {
+    width: 18px;
+    height: 18px;
+    color: var(--primary-color);
+}
+
+.coordinate-info {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    max-width: 300px;
+    font-weight: 500;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    color: var(--primary-color);
+}
+
+/* Custom searchable dropdown */
+.searchable-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.searchable-dropdown-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    background-color: #f9fafb;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: var(--transition);
+}
+
+.searchable-dropdown-select:hover {
+    border-color: #9ca3af;
+    background-color: white;
+}
+
+.searchable-dropdown-select:after {
+    content: '';
+    border-style: solid;
+    border-width: 5px 5px 0 5px;
+    border-color: #6b7280 transparent transparent transparent;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.searchable-dropdown-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    margin-top: 4px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    display: none;
+}
+
+.searchable-dropdown-search {
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    background: #f9fafb;
+}
+
+.searchable-dropdown-search input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+    background-color: white;
+}
+
+.searchable-dropdown-search input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+}
+
+.searchable-dropdown-option {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.searchable-dropdown-option:hover {
+    background-color: #f3f4f6;
+}
+
+.searchable-dropdown-option.selected {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.searchable-dropdown.active .searchable-dropdown-options {
+    display: block;
+}
+
+/* Tooltip styles for crime type growth chart */
+.crime-type-tooltip {
+    position: absolute;
+    background: rgba(30, 41, 59, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 0.5rem;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Barangay chart styles */
+.barangay-chart-container {
+    height: 500px;
+    overflow-y: hidden;
+    padding-right: 10px;
+}
+
+/* Chart pagination controls */
+.chart-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    width: 100%;
+    padding-bottom: 1rem;
+}
+
+.chart-pagination-info {
+    font-size: 0.95rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.chart-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.date-range {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.date-range-label {
+    font-size: 0.95rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.date-range-value {
+    background-color: #f3f4f6;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1e40af;
+}
+
+.chart-page-size {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.chart-page-size label {
+    font-size: 0.95rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.chart-page-size select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    background-color: #f9fafb;
+}
+
+.chart-page-size select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+    background-color: white;
+}
+
+.chart-search {
+    flex-grow: 1;
+    max-width: 300px;
+}
+
+.chart-search input {
+    width: 100%;
+}
+
+/* No data message */
+.no-data-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #6b7280;
+    text-align: center;
+    padding: 2rem;
+}
+
+.no-data-message svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 1rem;
+    color: #d1d5db;
+}
+
+.no-data-message p {
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Loading indicator */
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(30, 58, 138, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Leaflet control styling improvements */
+.leaflet-control-zoom a,
+.leaflet-control-layers a,
+.leaflet-control-fullscreen a {
+    width: 40px !important;
+    height: 40px !important;
+    line-height: 40px !important;
+    font-size: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+    color: var(--primary-color) !important;
+    border-radius: 8px !important;
+    background-color: white !important;
+    margin-bottom: 5px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.leaflet-control-zoom a:hover,
+.leaflet-control-layers a:hover,
+.leaflet-control-fullscreen a:hover {
+    background-color: #f8fafc !important;
+    color: var(--primary-color) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15) !important;
+}
+
+.leaflet-bar {
+    box-shadow: none !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-fullscreen a {
+    border: 1px solid #e5e7eb !important;
+}
+
+.leaflet-control-fullscreen a:before {
+    content: "⊕" !important;
+    font-size: 22px !important;
+}
+
+.custom-map-control {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.custom-map-control svg {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+.leaflet-control {
+    margin-top: 8px !important;
+}
+
+.leaflet-control-layers {
+    border-radius: 0.5rem !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+}
+
+.leaflet-control-layers-toggle {
+    width: 40px !important;
+    height: 40px !important;
+}
+
+.leaflet-popup-content-wrapper {
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    padding: 5px !important;
+}
+
+.leaflet-popup-content {
+    margin: 13px 19px !important;
+    line-height: 1.6 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.leaflet-popup-tip {
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1) !important;
+    background-color: white !important;
+}
+
+.leaflet-popup-close-button {
+    top: 10px !important;
+    right: 10px !important;
+    color: #6b7280 !important;
+    transition: color 0.2s ease !important;
+}
+
+.leaflet-popup-close-button:hover {
+    color: var(--primary-color) !important;
+}
+
+/* Enhanced Growth Analytics Styles */
+.growth-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.growth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.growth-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.growth-icon {
+    color: var(--primary-color);
+}
+
+.growth-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.year-group {
+    margin-bottom: 20px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.year-header {
+    padding: 12px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 16px;
+    margin: 0;
+}
+
+.month-stat-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    padding: 16px;
+}
+
+.growth-stat-item {
+    background-color: white;
+    padding: 12px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.growth-stat-label {
+    font-weight: 500;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+}
+
+.growth-stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.growth-stat-comparison {
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.growth-positive {
+    color: #ef4444;
+}
+
+.growth-negative {
+    color: #10b981;
+}
+
+.growth-neutral {
+    color: #6b7280;
+}
+
+.base-count {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-weight: normal;
+    margin-left: 0.5rem;
+}
+
+/* Crime Type Growth Pagination */
+.crime-type-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-bottom: 1rem;
+    width: 100%;
+}
+
+.crime-type-page-info {
+    font-size: 0.95rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* Responsive styles */
+@media (max-width: 1200px) {
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-form {
+        flex-direction: column;
+    }
+
+    .form-group {
+        width: 100%;
+    }
+}
+
+@media (max-width: 992px) {
+    .dashboard-header {
+        padding: 1.5rem;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .dashboard-header p {
+        font-size: 1rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .map-container {
+        height: 450px;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 1rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .map-container {
+        height: 400px;
+    }
+
+    .chart-container {
+        height: 300px;
+    }
+
+    .barangay-chart-container {
+        height: 400px;
+    }
+
+    .chart-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .chart-search {
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .map-controls {
+        margin-top: 0.75rem;
+    }
+
+    .map-container {
+        height: 350px;
+    }
+
+    .chart-container {
+        height: 250px;
+    }
+}
+
+.growth-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.year-group {
+    margin-bottom: 20px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.year-header {
+    padding: 12px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 16px;
+    margin: 0;
+}
+
+.month-stat-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    padding: 16px;
+}
+
+.growth-stat-item {
+    background-color: white;
+    padding: 12px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Update the updateMonthGrowthChart function to handle year groups */
+function updateMonthGrowthChart(year) {
+    let labels, growthRates, counts, monthData;
+    
+    if (year === 'all') {
+        labels = monthGrowthAllData.allLabels;
+        growthRates = monthGrowthAllData.allGrowthRates;
+        counts = monthGrowthAllData.allCounts;
+        monthData = monthGrowthAllData.allMonthData;
+        
+        // Show all year groups
+        document.querySelectorAll('.year-group').forEach(group => {
+            group.style.display = 'block';
+        });
+    } else {
+        year = parseInt(year);
+        if (!monthGrowthAllData.years[year]) {
+            // If the year doesn't exist in our data, show empty chart
+            labels = [];
+            growthRates = [];
+            counts = [];
+            monthData = [];
+        } else {
+            labels = monthGrowthAllData.years[year].labels.map(label => `${label} (${year})`);
+            growthRates = monthGrowthAllData.years[year].growthRates;
+            counts = monthGrowthAllData.years[year].counts;
+            monthData = monthGrowthAllData.years[year].monthData;
+        }
+        
+        // Show only the selected year group
+        document.querySelectorAll('.year-group').forEach(group => {
+            if (parseInt(group.getAttribute('data-year')) === year) {
+                group.style.display = 'block';
+            } else {
+                group.style.display = 'none';
+            }
+        });
+    }
+    
+    const chartData = {
+        labels: labels,
+        datasets: [{
+            type: 'bar',
+            label: 'Growth Rate (%)',
+            data: growthRates,
+            backgroundColor: function(context) {
+                const value = context.raw;
+                return value >= 0 ? '#ef4444' : '#10b981';
+            },
+            yAxisID: 'y'
+        }, {
+            type: 'line',
+            label: 'Crime Count',
+            data: counts,
+            borderColor: '#1e3a8a',
+            yAxisID: 'y1'
+        }]
+    };
+    
+    if (monthGrowthChart) {
+        monthGrowthChart.data = chartData;
+        monthGrowthChart.update();
+    } else {
+        monthGrowthChart = new Chart(monthGrowthCtx, {
+            type: 'bar',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Growth Rate (%)'
+                        }
+                    },
+                    y1: {
+                        beginAtZero: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Crime Count'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const datasetLabel = context.dataset.label || '';
+                                const value = context.raw || 0;
+
+                                if (datasetLabel === 'Growth Rate (%)') {
+                                    return `${datasetLabel}: ${value}%`;
+                                } else {
+                                    const monthIndex = context.dataIndex;
+                                    if (monthIndex >= 0 && monthIndex < monthData.length) {
+                                        const data = monthData[monthIndex];
+                                        return `${datasetLabel}: ${value} (Base: ${data.prev_count})`;
+                                    } else {
+                                        return `${datasetLabel}: ${value}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+/* Enhanced styles for result page */
+#app {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.grid-1 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.chart-container {
+    height: 320px;
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    background-color: #f9fafb;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    flex: 1;
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: #4b5563;
+}
+
+.filter-select {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    background-color: white;
+    font-size: 0.875rem;
+    color: #1f2937;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+    background-color: #0c1a38; /* Even darker on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.btn-outline {
+    background-color: white;
+    border: 1px solid #d1d5db;
+    color: #4b5563;
+}
+
+.btn-outline:hover:not(:disabled) {
+    background-color: #f3f4f6;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pattern-list, .recommendation-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pattern-item, .recommendation-item {
+    padding: 1.25rem 0;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.pattern-item:last-child, .recommendation-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.pattern-item:first-child, .recommendation-item:first-child {
+    padding-top: 0;
+}
+
+.pattern-icon, .recommendation-icon {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--primary-color);
+}
+
+.pattern-text, .recommendation-text {
+    flex-grow: 1;
+    font-size: 1rem;
+    color: #4b5563;
+}
+
+.location-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.location-table th, .location-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.location-table th {
+    font-weight: 600;
+    color: #4b5563;
+    font-size: 0.95rem;
+    background-color: rgba(249, 250, 251, 0.5);
+}
+
+.location-table td {
+    font-size: 0.95rem;
+}
+
+.location-table tr:hover {
+    background-color: rgba(249, 250, 251, 0.7);
+}
+
+.severity-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.page-item {
+    display: inline-block;
+}
+
+.page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #d1d5db;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: var(--transition);
+    color: #4b5563;
+}
+
+.page-link:hover {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.page-link.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.page-link.disabled {
+    color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.tab-container {
+    margin-bottom: 1.75rem;
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -ms-overflow-style: none;
+}
+
+.tabs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.tabs::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.3);
+    border-radius: 9999px;
+}
+
+.tab {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition);
+    white-space: nowrap;
+    color: #6b7280;
+}
+
+.tab:hover {
+    color: var(--primary-color);
+}
+
+.tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background-color: rgba(22, 40, 84, 0.05);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Custom popup styles */
+.crime-popup {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 300px;
+}
+
+.crime-popup-header {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: var(--primary-color);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding-bottom: 8px;
+}
+
+.crime-popup-info {
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    color: #4b5563;
+    display: flex;
+    align-items: flex-start;
+}
+
+.crime-popup-info svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    color: var(--primary-color);
+    opacity: 0.7;
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+
+.crime-popup-severity {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+    margin-top: 8px;
+}
+
+/* Custom map control buttons */
+.custom-map-control {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.custom-map-control:hover {
+    background-color: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.custom-map-control svg {
+    width: 18px;
+    height: 18px;
+    color: var(--primary-color);
+}
+
+.coordinate-info {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    max-width: 300px;
+    font-weight: 500;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    color: var(--primary-color);
+}
+
+/* Custom searchable dropdown */
+.searchable-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.searchable-dropdown-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    background-color: #f9fafb;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: var(--transition);
+}
+
+.searchable-dropdown-select:hover {
+    border-color: #9ca3af;
+    background-color: white;
+}
+
+.searchable-dropdown-select:after {
+    content: '';
+    border-style: solid;
+    border-width: 5px 5px 0 5px;
+    border-color: #6b7280 transparent transparent transparent;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.searchable-dropdown-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    margin-top: 4px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    display: none;
+}
+
+.searchable-dropdown-search {
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    background: #f9fafb;
+}
+
+.searchable-dropdown-search input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+    background-color: white;
+}
+
+.searchable-dropdown-search input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+}
+
+.searchable-dropdown-option {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.searchable-dropdown-option:hover {
+    background-color: #f3f4f6;
+}
+
+.searchable-dropdown-option.selected {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.searchable-dropdown.active .searchable-dropdown-options {
+    display: block;
+}
+
+/* Tooltip styles for crime type growth chart */
+.crime-type-tooltip {
+    position: absolute;
+    background: rgba(30, 41, 59, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 0.5rem;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Barangay chart styles */
+.barangay-chart-container {
+    height: 500px;
+    overflow-y: hidden;
+    padding-right: 10px;
+}
+
+/* Chart pagination controls */
+.chart-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    width: 100%;
+    padding-bottom: 1rem;
+}
+
+.chart-pagination-info {
+    font-size: 0.95rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.chart-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.date-range {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.date-range-label {
+    font-size: 0.95rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.date-range-value {
+    background-color: #f3f4f6;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1e40af;
+}
+
+.chart-page-size {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.chart-page-size label {
+    font-size: 0.95rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.chart-page-size select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    background-color: #f9fafb;
+}
+
+.chart-page-size select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
+    background-color: white;
+}
+
+.chart-search {
+    flex-grow: 1;
+    max-width: 300px;
+}
+
+.chart-search input {
+    width: 100%;
+}
+
+/* No data message */
+.no-data-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #6b7280;
+    text-align: center;
+    padding: 2rem;
+}
+
+.no-data-message svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 1rem;
+    color: #d1d5db;
+}
+
+.no-data-message p {
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Loading indicator */
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(30, 58, 138, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Leaflet control styling improvements */
+.leaflet-control-zoom a,
+.leaflet-control-layers a,
+.leaflet-control-fullscreen a {
+    width: 40px !important;
+    height: 40px !important;
+    line-height: 40px !important;
+    font-size: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+    color: var(--primary-color) !important;
+    border-radius: 8px !important;
+    background-color: white !important;
+    margin-bottom: 5px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.leaflet-control-zoom a:hover,
+.leaflet-control-layers a:hover,
+.leaflet-control-fullscreen a:hover {
+    background-color: #f8fafc !important;
+    color: var(--primary-color) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15) !important;
+}
+
+.leaflet-bar {
+    box-shadow: none !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-fullscreen a {
+    border: 1px solid #e5e7eb !important;
+}
+
+.leaflet-control-fullscreen a:before {
+    content: "⊕" !important;
+    font-size: 22px !important;
+}
+
+.custom-map-control {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.custom-map-control svg {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+.leaflet-control {
+    margin-top: 8px !important;
+}
+
+.leaflet-control-layers {
+    border-radius: 0.5rem !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+}
+
+.leaflet-control-layers-toggle {
+    width: 40px !important;
+    height: 40px !important;
+}
+
+.leaflet-popup-content-wrapper {
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    padding: 5px !important;
+}
+
+.leaflet-popup-content {
+    margin: 13px 19px !important;
+    line-height: 1.6 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.leaflet-popup-tip {
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1) !important;
+    background-color: white !important;
+}
+
+.leaflet-popup-close-button {
+    top: 10px !important;
+    right: 10px !important;
+    color: #6b7280 !important;
+    transition: color 0.2s ease !important;
+}
+
+.leaflet-popup-close-button:hover {
+    color: var(--primary-color) !important;
+}
+
+/* Enhanced Growth Analytics Styles */
+.growth-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.growth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.growth-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.growth-icon {
+    color: var(--primary-color);
+}
+
+.growth-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.year-group {
+    margin-bottom: 20px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.year-header {
+    padding: 12px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 16px;
+    margin: 0;
+}
+
+.month-stat-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    padding: 16px;
+}
+
+.growth-stat-item {
+    background-color: white;
+    padding: 12px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.growth-stat-label {
+    font-weight: 500;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+}
+
+.growth-stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.growth-stat-comparison {
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.growth-positive {
+    color: #ef4444;
+}
+
+.growth-negative {
+    color: #10b981;
+}
+
+.growth-neutral {
+    color: #6b7280;
+}
+
+.base-count {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-weight: normal;
+    margin-left: 0.5rem;
+}
+
+/* Crime Type Growth Pagination */
+.crime-type-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-bottom: 1rem;
+    width: 100%;
+}
+
+.crime-type-page-info {
+    font-size: 0.95rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* Responsive styles */
+@media (max-width: 1200px) {
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-form {
+        flex-direction: column;
+    }
+
+    .form-group {
+        width: 100%;
+    }
+}
+
+@media (max-width: 992px) {
+    .dashboard-header {
+        padding: 1.5rem;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .dashboard-header p {
+        font-size: 1rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .map-container {
+        height: 450px;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 1rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .map-container {
+        height: 400px;
+    }
+
+    .chart-container {
+        height: 300px;
+    }
+
+    .barangay-chart-container {
+        height: 400px;
+    }
+
+    .chart-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .chart-search {
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .map-controls {
+        margin-top: 0.75rem;
+    }
+
+    .map-container {
+        height: 350px;
+    }
+
+    .chart-container {
+        height: 250px;
+    }
+}
+
+.growth-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.year-group {
+    margin-bottom: 20px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.year-header {
+    padding: 12px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 16px;
+    margin: 0;
+}
+
+.month-stat-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    padding: 16px;
+}
+
+.growth-stat-item {
+    background-color: white;
+    padding: 12px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Update the updateMonthGrowthChart function to handle year groups */
+function updateMonthGrowthChart(year) {
+    let labels, growthRates, counts, monthData;
+
+    if (year === 'all') {
+        labels = monthGrowthAllData.allLabels;
+        growthRates = monthGrowthAllData.allGrowthRates;
+        counts = monthGrowthAllData.allCounts;
+        monthData = monthGrowthAllData.allMonthData;
+
+        // Show all year groups
+        document.querySelectorAll('.year-group').forEach(group => {
+            group.style.display = 'block';
+        });
+    } else {
+        year = parseInt(year);
+        if (!monthGrowthAllData.years[year]) {
+            // If the year doesn't exist in our data, show empty chart
+            labels = [];
+            growthRates = [];
+            counts = [];
+            monthData = [];
+        } else {
+            labels = monthGrowthAllData.years[year].labels.map(label => `${label} (${year})`);
+            growthRates = monthGrowthAllData.years[year].growthRates;
+            counts = monthGrowthAllData.years[year].counts;
+            monthData = monthGrowthAllData.years[year].monthData;
+        }
+
+        // Show only the selected year group
+        document.querySelectorAll('.year-group').forEach(group => {
+            if (parseInt(group.getAttribute('data-year')) === year) {
+                group.style.display = 'block';
+            } else {
+                group.style.display = 'none';
+            }
+        });
+    }
+
+    const chartData = {
+        labels: labels,
+        datasets: [{
+            type: 'bar',
+            label: 'Growth Rate (%)',
+            data: growthRates,
+            backgroundColor: function(context) {
+                const value = context.raw;
+                return value >= 0 ? '#ef4444' : '#10b981';
+            },
+            yAxisID: 'y'
+        }, {
+            type: 'line',
+            label: 'Crime Count',
+            data: counts,
+            borderColor: '#1e3a8a',
+            yAxisID: 'y1'
+        }]
+    };
+
+    if (monthGrowthChart) {
+        monthGrowthChart.data = chartData;
+        monthGrowthChart.update();
+    } else {
+        monthGrowthChart = new Chart(monthGrowthCtx, {
+            type: 'bar',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Growth Rate (%)'
+                        }
+                    },
+                    y1: {
+                        beginAtZero: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Crime Count'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const datasetLabel = context.dataset.label || '';
+                                const value = context.raw || 0;
+
+                                if (datasetLabel === 'Growth Rate (%)') {
+                                    return `${datasetLabel}: ${value}%`;
+                                } else {
+                                    const monthIndex = context.dataIndex;
+                                    if (monthIndex >= 0 && monthIndex < monthData.length) {
+                                        const data = monthData[monthIndex];
+                                        return `${datasetLabel}: ${value} (Base: ${data.prev_count})`;
+                                    } else {
+                                        return `${datasetLabel}: ${value}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+/* Enhanced styles for result page */
+#app {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.grid-1 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.chart-container {
+    height: 320px;
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    background-color: #f9fafb;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    flex: 1;
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: #4b5563;
+}
+
+.filter-select {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    background-color: white;
+    font-size: 0.875rem;
+    color: #1f2937;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+    background-color: #0c1a38; /* Even darker on hover */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.chart-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.chart-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.chart-pagination-info {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.chart-page-size {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chart-search {
+    max-width: 300px;
+}
+
+.growth-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.year-group {
+    margin-bottom: 20px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.year-header {
+    padding: 12px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 16px;
+    margin: 0;
+}
+
+.month-stat-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    padding: 16px;
+}
+
+.growth-stat-item {
+    background-color: white;
+    padding: 12px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.growth-stat-label {
+    font-weight: 500;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+}
+
+.growth-stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.base-count {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-weight: normal;
+    margin-left: 0.5rem;
+}
+
+.growth-stat-comparison {
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.growth-positive {
+    color: #ef4444;
+}
+
+.growth-negative {
+    color: #10b981;
+}
+
+.growth-neutral {
+    color: #6b7280;
+}
+
+.growth-tab-container {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.tabs {
+    display: flex;
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.tab {
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+    color: var(--primary-color);
+}
+
+.tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background-color: rgba(22, 40, 84, 0.05);
+}
+
+.tab-content {
+    padding: 1.5rem;
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.crime-type-tooltip {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    font-size: 0.875rem;
+    color: #1f2937;
+    z-index: 10;
+    max-width: 280px;
+    display: none;
+}
+
+.crime-type-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.crime-type-page-info {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.date-range {
+    display: flex;
+    flex-direction: column;
+}
+
+.date-range-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.date-range-value {
+    font-weight: 500;
+}
+
+:root {
+    --primary-color: #3b82f6;
+}
+
+.year-group {
+    margin-bottom: 20px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.year-header {
+    padding: 12px 16px;
+    background-color: #1e40af;
+    color: white;
+    font-size: 16px;
+    margin: 0;
+}
+
+.month-stat-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    padding: 16px;
+}
+
+.growth-stat-item {
+    background-color: white;
+    padding: 12px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.growth-stat-label {
+    font-weight: 500;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+}
+
+.growth-stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.base-count {
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <h1>Crime Data Analytics</h1>
+    <p>Analyze and visualize crime data across different locations and time periods</p>
+</div>
+
+<!-- Filters Section -->
+<div class="filter-section">
+    <div class="filter-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        Filters
+    </div>
+    <form class="filter-form" method="post" id="filter-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="year">Year:</label>
+            <div class="searchable-dropdown" id="year-dropdown">
+                <div class="searchable-dropdown-select">
+                    <span>{% if selected_year %}{{ selected_year }}{% else %}Select Year{% endif %}</span>
+                </div>
+                <div class="searchable-dropdown-options">
+                    <div class="searchable-dropdown-search">
+                        <input type="text" placeholder="Search year...">
+                    </div>
+                    <div class="searchable-dropdown-option" data-value="">Select All</div>
+                    {% for year in available_years %}
+                        <div class="searchable-dropdown-option {% if selected_year == year %}selected{% endif %}" data-value="{{ year }}">{{ year }}</div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="year" id="year" value="{{ selected_year|default:'' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="month">Month:</label>
+            <div class="searchable-dropdown" id="month-dropdown">
+                <div class="searchable-dropdown-select">
+                    <span>
+                        {% if selected_month %}
+                            {% if selected_month == 1 %}January
+                            {% elif selected_month == 2 %}February
+                            {% elif selected_month == 3 %}March
+                            {% elif selected_month == 4 %}April
+                            {% elif selected_month == 5 %}May
+                            {% elif selected_month == 6 %}June
+                            {% elif selected_month == 7 %}July
+                            {% elif selected_month == 8 %}August
+                            {% elif selected_month == 9 %}September
+                            {% elif selected_month == 10 %}October
+                            {% elif selected_month == 11 %}November
+                            {% elif selected_month == 12 %}December
+                            {% endif %}
+                        {% else %}Select Month{% endif %}
+                    </span>
+                </div>
+                <div class="searchable-dropdown-options">
+                    <div class="searchable-dropdown-search">
+                        <input type="text" placeholder="Search month...">
+                    </div>
+                    <div class="searchable-dropdown-option" data-value="">Select All</div>
+                    {% for month in available_months %}
+                        <div class="searchable-dropdown-option {% if selected_month == month %}selected{% endif %}" data-value="{{ month }}">
+                            {% if month == 1 %}January
+                            {% elif month == 2 %}February
+                            {% elif month == 3 %}March
+                            {% elif month == 4 %}April
+                            {% elif month == 5 %}May
+                            {% elif month == 6 %}June
+                            {% elif month == 7 %}July
+                            {% elif month == 8 %}August
+                            {% elif month == 9 %}September
+                            {% elif month == 10 %}October
+                            {% elif month == 11 %}November
+                            {% elif month == 12 %}December
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="month" id="month" value="{{ selected_month|default:'' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="city">City:</label>
+            <div class="searchable-dropdown" id="city-dropdown">
+                <div class="searchable-dropdown-select">
+                    <span>{% if selected_city %}{{ selected_city }}{% else %}Select City{% endif %}</span>
+                </div>
+                <div class="searchable-dropdown-options">
+                    <div class="searchable-dropdown-search">
+                        <input type="text" placeholder="Search city...">
+                    </div>
+                    <div class="searchable-dropdown-option" data-value="">Select All</div>
+                    {% for city in available_cities %}
+                        <div class="searchable-dropdown-option {% if selected_city == city %}selected{% endif %}" data-value="{{ city }}">{{ city }}</div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="city" id="city" value="{{ selected_city|default:'' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="barangay">Barangay:</label>
+            <div class="searchable-dropdown" id="barangay-dropdown">
+                <div class="searchable-dropdown-select">
+                    <span>{% if selected_barangay %}{{ selected_barangay }}{% else %}Select Barangay{% endif %}</span>
+                </div>
+                <div class="searchable-dropdown-options">
+                    <div class="searchable-dropdown-search">
+                        <input type="text" placeholder="Search barangay...">
+                    </div>
+                    <div class="searchable-dropdown-option" data-value="">Select All</div>
+                    {% for barangay in available_barangays %}
+                        <div class="searchable-dropdown-option {% if selected_barangay == barangay %}selected{% endif %}" data-value="{{ barangay }}">{{ barangay }}</div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="barangay" id="barangay" value="{{ selected_barangay|default:'' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="offense">Crime Type:</label>
+            <div class="searchable-dropdown" id="offense-dropdown">
+                <div class="searchable-dropdown-select">
+                    <span>{% if selected_offense %}{{ selected_offense }}{% else %}Select Crime Type{% endif %}</span>
+                </div>
+                <div class="searchable-dropdown-options">
+                    <div class="searchable-dropdown-search">
+                        <input type="text" placeholder="Search crime type...">
+                    </div>
+                    <div class="searchable-dropdown-option" data-value="">Select All</div>
+                    {% for offense in available_offenses %}
+                        <div class="searchable-dropdown-option {% if selected_offense == offense %}selected{% endif %}" data-value="{{ offense }}">{{ offense }}</div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="offense" id="offense" value="{{ selected_offense|default:'' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="severity">Severity:</label>
+            <div class="searchable-dropdown" id="severity-dropdown">
+                <div class="searchable-dropdown-select">
+                    <span>{% if selected_severity %}{{ selected_severity }}{% else %}Select Severity{% endif %}</span>
+                </div>
+                <div class="searchable-dropdown-options">
+                    <div class="searchable-dropdown-search">
+                        <input type="text" placeholder="Search severity...">
+                    </div>
+                    <div class="searchable-dropdown-option" data-value="">Select All</div>
+                    {% for severity in available_severities %}
+                        <div class="searchable-dropdown-option {% if selected_severity == severity %}selected{% endif %}" data-value="{{ severity }}">{{ severity }}</div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="severity" id="severity" value="{{ selected_severity|default:'' }}">
+            </div>
+        </div>
+        <div class="form-group" style="flex: 0 0 auto;">
+            <button type="submit" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-card-title">Total Records</div>
+            <div class="stat-card-icon" style="background-color: rgba(30, 58, 138, 0.1); color: var(--primary-color);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card-value">{{ total_crimes }}</div>
+        {% if records_percentage > 0 %}
+            <div class="stat-card-trend trend-up">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+                {{ records_percentage|floatformat:1 }}% from last month
+            </div>
+        {% elif records_percentage < 0 %}
+            <div class="stat-card-trend trend-down">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+                {{ records_percentage|floatformat:1|cut:"-" }}% from last month
+            </div>
+        {% else %}
+            <div class="stat-card-trend trend-neutral">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                No change from last month
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-card-title">Locations</div>
+            <div class="stat-card-icon" style="background-color: rgba(37, 99, 235, 0.1); color: var(--primary-light);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card-value">{{ available_cities|length }}</div>
+        <div class="stat-card-trend">
+            — {{ available_barangays|length }} barangays
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-card-title">Offense Types</div>
+            <div class="stat-card-icon" style="background-color: rgba(30, 58, 138, 0.1); color: var(--primary-color);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card-value">{{ available_offenses|length }}</div>
+        <div class="stat-card-trend">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            Most common: {{ most_common_offense_type }}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-card-header">
+            <div class="stat-card-title">Overall Severity</div>
+            <div class="stat-card-icon" style="background-color: rgba(239, 68, 68, 0.1); color: var(--danger-color);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card-value">{{ overall_severity }}</div>
+        <div class="severity-indicator"></div>
+    </div>
+</div>
+
+<!-- Map Section -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-title-icon">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                <line x1="8" y1="2" x2="8" y2="18"></line>
+                <line x1="16" y1="6" x2="16" y2="22"></line>
+            </svg>
+            Crime Map
+        </div>
+        <div class="map-controls">
+            <button type="button" class="map-control-btn active" id="marker-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                Markers
+            </button>
+            <button type="button" class="map-control-btn" id="heatmap-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v16M6.5 4a2.5 2.5 0 0 1 5 0c0 2-5 4-5 6.5a2.5 2.5 0 0 0 5 0"></path>
+                    <path d="M17.5 4a2.5 2.5 0 0 0-5 0c0 2 5 4 5 6.5a2.5 2.5 0 0 1-5 0"></path>
+                </svg>
+                Heatmap
+            </button>
+            <button type="button" class="map-control-btn" id="cluster-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="18" r="3"></circle>
+                    <circle cx="6" cy="6" r="3"></circle>
+                    <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+                    <line x1="6" y1="9" x2="6" y2="21"></line>
+                </svg>
+                Clusters
+            </button>
+            <button type="button" class="map-control-btn active" id="street-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="3" y1="15" x2="21" y2="15"></line>
+                    <line x1="9" y1="3" x2="9" y2="21"></line>
+                    <line x1="15" y1="3" x2="15" y2="21"></line>
+                </svg>
+                Street
+            </button>
+            <button type="button" class="map-control-btn" id="satellite-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                Satellite
+            </button>
+            <button type="button" class="map-control-btn" id="light-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                Light Map
+            </button>
+            <button type="button" class="map-control-btn" id="dark-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+                Dark Map
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="crime-map" class="map-container"></div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="grid-2">
+    <!-- Crime by Type Chart -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-title-icon">
+                    <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                    <path d="M22 12A10.0001 10.0001 0 0 0 12 2v10z"></path>
+                </svg>
+                Crime by Type
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="chart-controls">
+                <div class="chart-page-size">
+                    <label for="type-chart-page-size">Show:</label>
+                    <select id="type-chart-page-size">
+                        <option value="5">5 types</option>
+                        <option value="10" selected>10 types</option>
+                        <option value="15">15 types</option>
+                        <option value="all">All types</option>
+                    </select>
+                </div>
+                <div class="chart-search">
+                    <input type="text" id="type-chart-search" placeholder="Search crime type..." class="form-control">
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="crime-type-chart"></canvas>
+            </div>
+            <div class="chart-pagination">
+                <button id="type-prev-btn" class="btn btn-outline" disabled>&laquo; Previous</button>
+                <span class="chart-pagination-info" id="type-pagination-info">Page 1 of 1</span>
+                <button id="type-next-btn" class="btn btn-outline" disabled>Next &raquo;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Crime by Barangay Chart -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-title-icon">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                Crime by Barangay
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="chart-controls">
+                <div class="chart-page-size">
+                    <label for="barangay-chart-page-size">Show:</label>
+                    <select id="barangay-chart-page-size">
+                        <option value="10">10 barangays</option>
+                        <option value="20" selected>20 barangays</option>
+                        <option value="30">30 barangays</option>
+                        <option value="all">All barangays</option>
+                    </select>
+                </div>
+                <div class="chart-search">
+                    <input type="text" id="barangay-chart-search" placeholder="Search barangay..." class="form-control">
+                </div>
+            </div>
+            <div class="barangay-chart-container">
+                <canvas id="crime-barangay-chart"></canvas>
+            </div>
+            <div class="chart-pagination">
+                <button id="barangay-prev-btn" class="btn btn-outline" disabled>&laquo; Previous</button>
+                <span class="chart-pagination-info" id="barangay-pagination-info">Page 1 of 1</span>
+                <button id="barangay-next-btn" class="btn btn-outline" disabled>Next &raquo;</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Growth Analytics Section (Enhanced) -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-title-icon">
+                <line x1="12" y1="20" x2="12" y2="10"></line>
+                <line x1="18" y1="20" x2="18" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="16"></line>
+            </svg>
+            Growth Analytics
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="tab-container">
+            <div class="tabs">
+                <div class="tab active" data-tab="yearly">Year-over-Year Growth</div>
+                <div class="tab" data-tab="monthly">Month-over-Month Growth</div>
+                <div class="tab" data-tab="crime-type">Crime Type Growth</div>
+                <div class="tab" data-tab="seasonal">Seasonal Patterns</div>
+            </div>
+
+            <!-- Year-over-Year Growth Tab (Enhanced) -->
+            <div class="tab-content active" id="yearly-tab">
+                <div class="growth-stats">
+                    {% for year, data in year_over_year_growth.items %}
+                    <div class="growth-stat-item">
+                        <div class="growth-stat-label">{{ data.prev_year }} to {{ year }}</div>
+                        <div class="growth-stat-value">
+                            {{ data.growth_rate|floatformat:1 }}%
+                            <span class="base-count">{{ data.prev_count }} → {{ data.current_count }}</span>
+                        </div>
+                        <div class="growth-stat-comparison {% if data.growth_rate > 0 %}growth-positive{% elif data.growth_rate < 0 %}growth-negative{% else %}growth-neutral{% endif %}">
+                            {% if data.growth_rate > 0 %}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="18 15 12 9 6 15"></polyline>
+                            </svg>
+                            Increase
+                            {% elif data.growth_rate < 0 %}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                            Decrease
+                            {% else %}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            No change
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="chart-container">
+                    <canvas id="year-growth-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Month-over-Month Growth Tab (Enhanced) -->
+            <div class="tab-content" id="monthly-tab">
+                <div class="chart-controls">
+                    <div class="chart-page-size">
+                        <label for="month-growth-year-filter">Year:</label>
+                        <select id="month-growth-year-filter">
+                            <option value="all">All Years</option>
+                            {% for year in available_years %}
+                            <option value="{{ year }}">{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="growth-stats" id="month-growth-stats">
+                    {% for year, months in month_over_month_growth.items %}
+                        <div class="year-group" data-year="{{ year }}">
+                            <h3 class="year-header">{{ year }}</h3>
+                            <div class="month-stat-container">
+                                {% for month, data in months.items %}
+                                <div class="growth-stat-item" data-year="{{ data.year }}">
+                                    <div class="growth-stat-label">{{ data.month_name }}</div>
+                                    <div class="growth-stat-value">
+                                        {{ data.growth_rate|floatformat:1 }}%
+                                        <span class="base-count">{{ data.prev_count }} → {{ data.current_count }}</span>
+                                    </div>
+                                    <div class="growth-stat-comparison {% if data.growth_rate > 0 %}growth-positive{% elif data.growth_rate < 0 %}growth-negative{% else %}growth-neutral{% endif %}">
+                                        {% if data.growth_rate > 0 %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="18 15 12 9 6 15"></polyline>
+                                        </svg>
+                                        Increase
+                                        {% elif data.growth_rate < 0 %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                        Decrease
+                                        {% else %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        </svg>
+                                        No change
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="chart-container">
+                    <canvas id="month-growth-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Crime Type Growth Tab (Enhanced with Pagination) -->
+            <div class="tab-content" id="crime-type-tab">
+                <div class="chart-controls">
+                    <div class="chart-page-size">
+                        <label for="crime-type-growth-page-size">Show:</label>
+                        <select id="crime-type-growth-page-size">
+                            <option value="10">10 types</option>
+                            <option value="20">20 types</option>
+                            <option value="30">30 types</option>
+                            <option value="all">All types</option>
+                        </select>
+                    </div>
+                    <div class="chart-search">
+                        <input type="text" id="crime-type-growth-search" placeholder="Search crime type..." class="form-control">
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="crime-type-growth-chart"></canvas>
+                </div>
+                <div id="crime-type-tooltip" class="crime-type-tooltip"></div>
+                <div class="crime-type-pagination">
+                    <button id="crime-type-prev-btn" class="btn btn-outline" disabled>&laquo; Previous</button>
+                    <span class="crime-type-page-info" id="crime-type-pagination-info">Page 1 of 1</span>
+                    <button id="crime-type-next-btn" class="btn btn-outline" disabled>Next &raquo;</button>
+                </div>
+            </div>
+
+            <!-- Seasonal Patterns Tab -->
+            <div class="tab-content" id="seasonal-tab">
+                <div class="chart-container">
+                    <canvas id="seasonal-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Other sections remain unchanged -->
+<div class="grid-2">
+    <!-- Crime Trend Chart -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-title-icon">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                Crime Trends Over Time
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="chart-controls">
+                <div class="date-range">
+                    <span class="date-range-label">Data Range</span>
+                    <span class="date-range-value">Aug 01 - Dec 31</span>
+                </div>
+                <div class="chart-page-size">
+                    <label for="trend-chart-page-size">Show:</label>
+                    <select id="trend-chart-page-size">
+                        <option value="6">6 months</option>
+                        <option value="12" selected>12 months</option>
+                        <option value="24">24 months</option>
+                        <option value="all">All data</option>
+                    </select>
+                </div>
+                <!-- Removing the search bar div -->
+            </div>
+            <div class="chart-container">
+                <canvas id="crime-trend-chart"></canvas>
+            </div>
+            <div class="chart-pagination">
+                <button id="trend-prev-btn" class="btn btn-outline" disabled>&laquo; Previous</button>
+                <span class="chart-pagination-info" id="trend-pagination-info">Page 1 of 1</span>
+                <button id="trend-next-btn" class="btn btn-outline" disabled>Next &raquo;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Severity Distribution Chart -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-title-icon">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+                Severity Distribution
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="severity-chart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Insights and Recommendations Section -->
+<div class="grid-2">
+    <!-- Crime Patterns -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-title-icon">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                Crime Patterns
+            </div>
+        </div>
+        <div class="card-body">
+            <ul class="pattern-list">
+                {% for pattern in crime_patterns %}
+                <li class="pattern-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pattern-icon">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <div class="pattern-text">{{ pattern }}</div>
+                </li>
+                {% empty %}
+                <li class="pattern-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pattern-icon">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div class="pattern-text">No significant patterns detected in the current data set.</div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Action Recommendations -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-title-icon">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Action Recommendations
+            </div>
+        </div>
+        <div class="card-body">
+            <ul class="recommendation-list">
+                {% for recommendation in action_recommendations %}
+                <li class="recommendation-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="recommendation-icon">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <div class="recommendation-text">{{ recommendation }}</div>
+                </li>
+                {% empty %}
+                <li class="recommendation-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="recommendation-icon">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div class="recommendation-text">No specific actions recommended based on current data.</div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Location Severity Table -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-title-icon">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            Location Severity Analysis
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="location-table">
+            <thead>
+                <tr>
+                    <th>Location</th>
+                    <th>High Severity</th>
+                    <th>Medium Severity</th>
+                    <th>Low Severity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for location in paginated_location_data %}
+                <tr>
+                    <td>{{ location.name }}</td>
+                    <td>
+                        <span class="severity-badge severity-high">{{ location.high }}</span>
+                    </td>
+                    <td>
+                        <span class="severity-badge severity-medium">{{ location.medium }}</span>
+                    </td>
+                    <td>
+                        <span class="severity-badge severity-low">{{ location.low }}</span>
+                    </td>
+                    <td>{{ location.high|add:location.medium|add:location.low }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center;">No location data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            {% if paginated_location_data.has_previous %}
+            <span class="page-item">
+                <a class="page-link" href="javascript:void(0)" data-page="1">
+                    &laquo;
+                </a>
+            </span>
+            <span class="page-item">
+                <a class="page-link" href="javascript:void(0)" data-page="{{ paginated_location_data.previous_page_number }}">
+                    &lsaquo;
+                </a>
+            </span>
+            {% endif %}
+
+            {% for i in paginated_location_data.paginator.page_range %}
+                {% if paginated_location_data.number == i %}
+                <span class="page-item">
+                    <span class="page-link active">{{ i }}</span>
+                </span>
+                {% elif i > paginated_location_data.number|add:'-3' and i < paginated_location_data.number|add:'3' %}
+                <span class="page-item">
+                    <a class="page-link" href="javascript:void(0)" data-page="{{ i }}">
+                        {{ i }}
+                    </a>
+                </span>
+                {% endif %}
+            {% endfor %}
+
+            {% if paginated_location_data.has_next %}
+            <span class="page-item">
+                <a class="page-link" href="javascript:void(0)" data-page="{{ paginated_location_data.next_page_number }}">
+                    &rsaquo;
+                </a>
+            </span>
+            <span class="page-item">
+                <a class="page-link" href="javascript:void(0)" data-page="{{ paginated_location_data.paginator.num_pages }}">
+                    &raquo;
+                </a>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS for maps -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Heatmap plugin -->
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<!-- Marker Cluster plugin -->
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<!-- Leaflet Fullscreen plugin -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/2.4.0/Control.FullScreen.min.js"></script>
+<!-- Chart.js for data visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize searchable dropdowns
+    const dropdowns = document.querySelectorAll('.searchable-dropdown');
+
+    dropdowns.forEach(dropdown => {
+        const select = dropdown.querySelector('.searchable-dropdown-select');
+        const options = dropdown.querySelector('.searchable-dropdown-options');
+        const optionItems = dropdown.querySelectorAll('.searchable-dropdown-option');
+        const searchInput = dropdown.querySelector('.searchable-dropdown-search input');
+        const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+
+        // Toggle dropdown on click
+        select.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.classList.toggle('active');
+
+            if (dropdown.classList.contains('active')) {
+                searchInput.focus();
+            }
+        });
+
+        // Handle option selection
+        optionItems.forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                const text = this.textContent;
+
+                // Update hidden input value - ensure empty string for empty selections
+                hiddenInput.value = value || '';
+
+                // Update displayed text
+                select.querySelector('span').textContent = value ? text : select.querySelector('span').getAttribute('data-placeholder') || 'Select';
+
+                // Mark as selected
+                optionItems.forEach(opt => opt.classList.remove('selected'));
+                if (value) {
+                    this.classList.add('selected');
+                }
+
+                // Close dropdown
+                dropdown.classList.remove('active');
+            });
+        });
+
+        // Filter options on search
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+
+            optionItems.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                if (text.includes(searchTerm) || option.getAttribute('data-value') === '') {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+    });
+
+    // Add form submission handler to clean empty values
+    document.getElementById('filter-form').addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent normal form submission
+
+        // Get all hidden inputs in the form
+        const hiddenInputs = this.querySelectorAll('input[type="hidden"]');
+        const formData = new FormData();
+
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]').value;
+        formData.append('csrfmiddlewaretoken', csrfToken);
+
+        // Add form data, skipping empty values
+        hiddenInputs.forEach(input => {
+            if (input.value && input.value.trim() !== '') {
+                formData.append(input.name, input.value);
+            }
+        });
+
+        // Send POST request to the same URL without query parameters
+        fetch(window.location.pathname, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Replace the current page content with the response
+            document.open();
+            document.write(html);
+            document.close();
+        })
+        .catch(error => {
+            console.error('Error submitting form:', error);
+        });
+    });
+
+    // Initialize map
+    const map = L.map('crime-map', {
+        fullscreenControl: true,
+        fullscreenControlOptions: {
+            position: 'topleft',
+            title: 'Show fullscreen',
+            titleCancel: 'Exit fullscreen'
+        }
+    }).setView([8.9475, 125.5406], 13); // Set the specified coordinates
+
+    // Define tile layers
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    });
+
+    const lightLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    });
+
+    const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    });
+
+    // Add default layer to map
+    streetLayer.addTo(map);
+
+    // Add custom reset view control
+    L.Control.ResetView = L.Control.extend({
+        options: {
+            position: 'topleft',
+            title: 'Reset view'
+        },
+
+        onAdd: function(map) {
+            this._map = map;
+            this._container = L.DomUtil.create('div', 'leaflet-control-zoom leaflet-bar leaflet-control');
+            this._resetButton = this._createButton(this.options.title, 'custom-map-control', this._container, this._resetView, this);
+
+            return this._container;
+        },
+
+        _createButton: function(title, className, container, fn, context) {
+            var link = L.DomUtil.create('a', className, container);
+            link.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="2"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line></svg>';
+            link.href = '#';
+            link.title = title;
+
+            L.DomEvent
+                .on(link, 'mousedown touchstart dblclick', L.DomEvent.stopPropagation)
+                .on(link, 'click', L.DomEvent.stop)
+                .on(link, 'click', fn, context)
+                .on(link, 'click', this._refocusOnMap, context);
+
+            return link;
+        },
+
+        _resetView: function() {
+            // Always reset to the specified coordinates
+            this._map.setView([8.9475, 125.5406], 13);
+        },
+
+        _refocusOnMap: function() {
+            if (this._map) {
+                this._map.getContainer().focus();
+            }
+        }
+    });
+
+    L.control.resetView = function(options) {
+        return new L.Control.ResetView(options);
+    };
+
+    // Add the reset view control to the map
+    L.control.resetView().addTo(map);
+
+    // Crime data from Django
+    const crimeData = [
+        {% for crime in crimes %}
+            {% if crime.latitude and crime.longitude %}
+                {
+                    id: {{ crime.id|default:"0" }},
+                    lat: {{ crime.latitude }},
+                    lng: {{ crime.longitude }},
+                    offense: "{{ crime.offense }}",
+                    time: "{{ crime.time_committed }}",
+                    date: "{{ crime.date_committed|date:'Y-m-d' }}",
+                    city: "{{ crime.city }}",
+                    barangay: "{{ crime.barangay }}",
+                    severity: "{{ crime.severity }}"
+                },
+            {% endif %}
+        {% endfor %}
+    ];
+
+    // Prepare data for heatmap
+    const heatData = crimeData.map(point => {
+        // Weight by severity
+        let weight = 0.5; // Default
+        if (point.severity === 'High') {
+            weight = 1.0;
+        } else if (point.severity === 'Medium') {
+            weight = 0.7;
+        } else if (point.severity === 'Low') {
+            weight = 0.4;
+        }
+        return [point.lat, point.lng, weight];
+    });
+
+    // Create heatmap layer
+    const heatLayer = L.heatLayer(heatData, {
+        radius: 25,
+        blur: 15,
+        maxZoom: 17,
+        gradient: {
+            0.4: 'blue',
+            0.6: 'lime',
+            0.8: 'yellow',
+            1.0: 'red'
+        }
+    });
+
+    // Create marker cluster group
+    const markers = L.markerClusterGroup();
+
+    // Create individual markers
+    const markerLayer = L.layerGroup();
+    crimeData.forEach(point => {
+        // Choose marker color based on severity
+        let markerColor = 'blue';
+        if (point.severity === 'High') {
+            markerColor = '#ef4444'; // red
+        } else if (point.severity === 'Medium') {
+            markerColor = '#f59e0b'; // orange
+        } else if (point.severity === 'Low') {
+            markerColor = '#10b981'; // green
+        }
+
+        // Create marker with enhanced popup
+        const marker = L.circleMarker([point.lat, point.lng], {
+            radius: 8,
+            fillColor: markerColor,
+            color: '#fff',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+        }).bindPopup(`
+            <div class="crime-popup">
+                <div class="crime-popup-header">${point.offense}</div>
+                <div class="crime-popup-info"><strong>Location:</strong> ${point.barangay}, ${point.city}</div>
+                <div class="crime-popup-info"><strong>Date:</strong> ${point.date}</div>
+                <div class="crime-popup-info"><strong>Time:</strong> ${point.time}</div>
+                <div class="crime-popup-info">
+                    <strong>Severity:</strong>
+                    <span class="crime-popup-severity" style="background-color: ${markerColor};">${point.severity}</span>
+                </div>
+            </div>
+        `);
+
+        markerLayer.addLayer(marker);
+
+        // Add a clone of the marker to the cluster group
+        const clusterMarker = L.circleMarker([point.lat, point.lng], {
+            radius: 8,
+            fillColor: markerColor,
+            color: '#fff',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+        }).bindPopup(`
+            <div class="crime-popup">
+                <div class="crime-popup-header">${point.offense}</div>
+                <div class="crime-popup-info"><strong>Location:</strong> ${point.barangay}, ${point.city}</div>
+                <div class="crime-popup-info"><strong>Date:</strong> ${point.date}</div>
+                <div class="crime-popup-info">
+                    <strong>Severity:</strong>
+                    <span class="crime-popup-severity" style="background-color: ${markerColor};">${point.severity}</span>
+                </div>
+            </div>
+        `);
+
+        markers.addLayer(clusterMarker);
+    });
+
+    // Add marker layer to map by default instead of heatmap
+    markerLayer.addTo(map);
+
+    // Map control buttons
+    document.getElementById('heatmap-btn').addEventListener('click', function() {
+        setActiveButton(this);
+        map.removeLayer(markerLayer);
+        map.removeLayer(markers);
+        if (!map.hasLayer(heatLayer)) {
+            map.addLayer(heatLayer);
+        }
+    });
+
+    document.getElementById('marker-btn').addEventListener('click', function() {
+        setActiveButton(this);
+        map.removeLayer(heatLayer);
+        map.removeLayer(markers);
+        if (!map.hasLayer(markerLayer)) {
+            map.addLayer(markerLayer);
+        }
+    });
+
+    document.getElementById('cluster-btn').addEventListener('click', function() {
+        setActiveButton(this);
+        map.removeLayer(heatLayer);
+        map.removeLayer(markerLayer);
+        if (!map.hasLayer(markers)) {
+            map.addLayer(markers);
+        }
+    });
+
+    document.getElementById('street-btn').addEventListener('click', function() {
+        setActiveButton(this);
+        map.removeLayer(satelliteLayer);
+        map.removeLayer(lightLayer);
+        map.removeLayer(darkLayer);
+        if (!map.hasLayer(streetLayer)) {
+            map.addLayer(streetLayer);
+        }
+    });
+
+    document.getElementById('satellite-btn').addEventListener('click', function() {
+        setActiveButton(this);
+        map.removeLayer(streetLayer);
+        map.removeLayer(lightLayer);
+        map.removeLayer(darkLayer);
+        if (!map.hasLayer(satelliteLayer)) {
+            map.addLayer(satelliteLayer);
+        }
+    });
+
+    document.getElementById('light-btn').addEventListener('click', function() {
+        setActiveButton(this);
+        map.removeLayer(streetLayer);
+        map.removeLayer(satelliteLayer);
+        map.removeLayer(darkLayer);
+        if (!map.hasLayer(lightLayer)) {
+            map.addLayer(lightLayer);
+        }
+    });
+
+    document.getElementById('dark-btn').addEventListener('click', function() {
+        setActiveButton(this);
+        map.removeLayer(streetLayer);
+        map.removeLayer(satelliteLayer);
+        map.removeLayer(lightLayer);
+        if (!map.hasLayer(darkLayer)) {
+            map.addLayer(darkLayer);
+        }
+    });
+
+    function setActiveButton(button) {
+        // For map type buttons
+        if (button.id === 'satellite-btn' || button.id === 'light-btn' || button.id === 'dark-btn' || button.id === 'street-btn') {
+            document.getElementById('satellite-btn').classList.remove('active');
+            document.getElementById('light-btn').classList.remove('active');
+            document.getElementById('dark-btn').classList.remove('active');
+            document.getElementById('street-btn').classList.remove('active');
+            button.classList.add('active');
+        }
+        // For layer type buttons
+        else if (button.id === 'heatmap-btn' || button.id === 'marker-btn' || button.id === 'cluster-btn') {
+            document.getElementById('heatmap-btn').classList.remove('active');
+            document.getElementById('marker-btn').classList.remove('active');
+            document.getElementById('cluster-btn').classList.remove('active');
+            button.classList.add('active');
+        }
+    }
+
+    // Initialize charts
+    function initializeCharts() {
+        try {
+            // Crime by Type Pie Chart
+            const pieLabels = {{ pie_labels|safe }};
+            const pieValues = {{ pie_values|safe }};
+            let typeChart;
+            let typePageSize = 10;
+            let typeCurrentPage = 1;
+            let typeFilteredLabels = [...pieLabels];
+            let typeFilteredValues = [...pieValues];
+            let typeTotalPages = Math.ceil(typeFilteredLabels.length / typePageSize);
+
+            // Initialize type chart
+            function initTypeChart() {
+                const pieCtx = document.getElementById('crime-type-chart').getContext('2d');
+
+                // Get current page data
+                const startIdx = (typeCurrentPage - 1) * typePageSize;
+                const endIdx = Math.min(startIdx + typePageSize, typeFilteredLabels.length);
+                const currentLabels = typeFilteredLabels.slice(startIdx, endIdx);
+                const currentValues = typeFilteredValues.slice(startIdx, endIdx);
+
+                // Create or update chart
+                if (typeChart) {
+                    typeChart.data.labels = currentLabels;
+                    typeChart.data.datasets[0].data = currentValues;
+                    typeChart.update();
+                } else {
+                    typeChart = new Chart(pieCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: currentLabels,
+                            datasets: [{
+                                data: currentValues,
+                                backgroundColor: [
+                                    '#4f46e5', '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
+                                    '#f59e0b', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
+                                    '#6b7280', '#8b5cf6', '#d946ef', '#f43f5e', '#fb7185'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                    labels: {
+                                        boxWidth: 15,
+                                        font: {
+                                            size: 10
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.label || '';
+                                            const value = context.raw || 0;
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = Math.round((value / total) * 100);
+                                            return `${label}: ${value} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Update pagination info
+                document.getElementById('type-pagination-info').textContent = `Page ${typeCurrentPage} of ${typeTotalPages}`;
+
+                // Update button states
+                document.getElementById('type-prev-btn').disabled = typeCurrentPage === 1;
+                document.getElementById('type-next-btn').disabled = typeCurrentPage === typeTotalPages || typeTotalPages === 0;
+            }
+
+            // Type chart pagination controls
+            document.getElementById('type-prev-btn').addEventListener('click', function() {
+                if (typeCurrentPage > 1) {
+                    typeCurrentPage--;
+                    initTypeChart();
+                }
+            });
+
+            document.getElementById('type-next-btn').addEventListener('click', function() {
+                if (typeCurrentPage < typeTotalPages) {
+                    typeCurrentPage++;
+                    initTypeChart();
+                }
+            });
+
+            // Type chart page size control
+            document.getElementById('type-chart-page-size').addEventListener('change', function() {
+                const value = this.value;
+                if (value === 'all') {
+                    typePageSize = typeFilteredLabels.length;
+                } else {
+                    typePageSize = parseInt(value);
+                }
+                typeCurrentPage = 1;
+                typeTotalPages = Math.ceil(typeFilteredLabels.length / typePageSize);
+                initTypeChart();
+            });
+
+            // Type chart search
+            document.getElementById('type-chart-search').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+
+                if (searchTerm === '') {
+                    typeFilteredLabels = [...pieLabels];
+                    typeFilteredValues = [...pieValues];
+                } else {
+                    // Filter data based on search term
+                    const filteredData = pieLabels.map((label, index) => ({
+                        label,
+                        value: pieValues[index]
+                    })).filter(item => item.label.toLowerCase().includes(searchTerm));
+
+                    typeFilteredLabels = filteredData.map(item => item.label);
+                    typeFilteredValues = filteredData.map(item => item.value);
+                }
+
+                typeCurrentPage = 1;
+                typeTotalPages = Math.ceil(typeFilteredLabels.length / typePageSize);
+                initTypeChart();
+            });
+
+            // Initialize type chart
+            initTypeChart();
+
+            // Crime by Barangay Bar Chart
+            // Collect barangay data from crimeData
+            const barangayCounts = {};
+            crimeData.forEach(crime => {
+                if (!barangayCounts[crime.barangay]) {
+                    barangayCounts[crime.barangay] = 0;
+                }
+                barangayCounts[crime.barangay]++;
+            });
+
+            // Sort barangays by count in descending order
+            const sortedBarangays = Object.keys(barangayCounts).sort((a, b) =>
+                barangayCounts[b] - barangayCounts[a]
+            );
+
+            // Prepare data for chart (use all barangays)
+            const barangayLabels = sortedBarangays;
+            const barangayValues = sortedBarangays.map(barangay => barangayCounts[barangay]);
+
+            // Barangay chart pagination variables
+            let barangayChart;
+            let barangayPageSize = 20;
+            let barangayCurrentPage = 1;
+            let barangayFilteredLabels = [...barangayLabels];
+            let barangayFilteredValues = [...barangayValues];
+            let barangayTotalPages = Math.ceil(barangayFilteredLabels.length / barangayPageSize);
+
+            // Initialize barangay chart
+            function initBarangayChart() {
+                const barangayCtx = document.getElementById('crime-barangay-chart').getContext('2d');
+
+                // Get current page data
+                const startIdx = (barangayCurrentPage - 1) * barangayPageSize;
+                const endIdx = Math.min(startIdx + barangayPageSize, barangayFilteredLabels.length);
+                const currentLabels = barangayFilteredLabels.slice(startIdx, endIdx);
+                const currentValues = barangayFilteredValues.slice(startIdx, endIdx);
+
+                // Create or update chart
+                if (barangayChart) {
+                    barangayChart.data.labels = currentLabels;
+                    barangayChart.data.datasets[0].data = currentValues;
+                    barangayChart.update();
+                } else {
+                    barangayChart = new Chart(barangayCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: currentLabels,
+                            datasets: [{
+                                label: 'Number of Crimes',
+                                data: currentValues,
+                                backgroundColor: '#1e3a8a',
+                                borderColor: '#1e40af',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Number of Incidents'
+                                    }
+                                },
+                                y: {
+                                    ticks: {
+                                        autoSkip: false,
+                                        font: {
+                                            size: 11
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.raw} incidents`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Update pagination info
+                document.getElementById('barangay-pagination-info').textContent = `Page ${barangayCurrentPage} of ${barangayTotalPages}`;
+
+                // Update button states
+                document.getElementById('barangay-prev-btn').disabled = barangayCurrentPage === 1;
+                document.getElementById('barangay-next-btn').disabled = barangayCurrentPage === barangayTotalPages || barangayTotalPages === 0;
+            }
+
+            // Barangay chart pagination controls
+            document.getElementById('barangay-prev-btn').addEventListener('click', function() {
+                if (barangayCurrentPage > 1) {
+                    barangayCurrentPage--;
+                    initBarangayChart();
+                }
+            });
+
+            document.getElementById('barangay-next-btn').addEventListener('click', function() {
+                if (barangayCurrentPage < barangayTotalPages) {
+                    barangayCurrentPage++;
+                    initBarangayChart();
+                }
+            });
+
+            // Barangay chart page size control
+            document.getElementById('barangay-chart-page-size').addEventListener('change', function() {
+                const value = this.value;
+                if (value === 'all') {
+                    barangayPageSize = barangayFilteredLabels.length;
+                } else {
+                    barangayPageSize = parseInt(value);
+                }
+                barangayCurrentPage = 1;
+                barangayTotalPages = Math.ceil(barangayFilteredLabels.length / barangayPageSize);
+                initBarangayChart();
+            });
+
+            // Barangay chart search
+            document.getElementById('barangay-chart-search').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+
+                if (searchTerm === '') {
+                    barangayFilteredLabels = [...barangayLabels];
+                    barangayFilteredValues = [...barangayValues];
+                } else {
+                    // Filter data based on search term
+                    const filteredData = barangayLabels.map((label, index) => ({
+                        label,
+                        value: barangayValues[index]
+                    })).filter(item => item.label.toLowerCase().includes(searchTerm));
+
+                    barangayFilteredLabels = filteredData.map(item => item.label);
+                    barangayFilteredValues = filteredData.map(item => item.value);
+                }
+
+                barangayCurrentPage = 1;
+                barangayTotalPages = Math.ceil(barangayFilteredLabels.length / barangayPageSize);
+                initBarangayChart();
+            });
+
+            // Initialize barangay chart
+            initBarangayChart();
+
+            // Crime Trend Line Chart
+            const lineLabels = {{ line_labels|safe }};
+            const lineValues = {{ line_values|safe }};
+            let trendChart;
+            let trendPageSize = 12;
+            let trendCurrentPage = 1;
+            let trendFilteredLabels = [...lineLabels];
+            let trendFilteredValues = [...lineValues];
+            let trendTotalPages = Math.ceil(trendFilteredLabels.length / trendPageSize);
+
+            // Calculate the date range from the data
+            function calculateDateRange() {
+                if (trendFilteredLabels.length === 0) return "No data";
+
+                // Get the first and last date from trendFilteredLabels
+                const allDates = trendFilteredLabels.map(label => {
+                    const [month, year] = label.split('/');
+                    return new Date(year, month - 1, 1); // first day of month
+                });
+
+                // Sort dates chronologically
+                allDates.sort((a, b) => a - b);
+
+                const firstDate = allDates[0];
+                const lastDate = allDates[allDates.length - 1];
+
+                // Format the dates
+                const monthNames = [
+                    'Jan', 'Feb', 'Mar', 'Apr',
+                    'May', 'Jun', 'Jul', 'Aug',
+                    'Sep', 'Oct', 'Nov', 'Dec'
+                ];
+
+                const firstMonth = monthNames[firstDate.getMonth()];
+                const lastMonth = monthNames[lastDate.getMonth()];
+                const firstYear = firstDate.getFullYear();
+                const lastYear = lastDate.getFullYear();
+
+                // If same year, don't repeat it
+                if (firstYear === lastYear) {
+                    return `${firstMonth} - ${lastMonth} ${lastYear}`;
+                } else {
+                    return `${firstMonth} ${firstYear} - ${lastMonth} ${lastYear}`;
+                }
+            }
+
+            // Update the date range display
+            function updateDateRange() {
+                document.querySelector('.date-range-value').textContent = calculateDateRange();
+            }
+
+            // Initialize trend chart
+            function initTrendChart() {
+                const lineCtx = document.getElementById('crime-trend-chart').getContext('2d');
+
+                // Get current page data
+                const startIdx = (trendCurrentPage - 1) * trendPageSize;
+                const endIdx = Math.min(startIdx + trendPageSize, trendFilteredLabels.length);
+                const currentLabels = trendFilteredLabels.slice(startIdx, endIdx);
+                const currentValues = trendFilteredValues.slice(startIdx, endIdx);
+
+                // Create or update chart
+                if (trendChart) {
+                    trendChart.data.labels = currentLabels;
+                    trendChart.data.datasets[0].data = currentValues;
+                    trendChart.update();
+                } else {
+                    trendChart = new Chart(lineCtx, {
+                        type: 'line',
+                        data: {
+                            labels: currentLabels,
+                            datasets: [{
+                                label: 'Number of Crimes',
+                                data: currentValues,
+                                fill: true,
+                                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                borderColor: '#3b82f6',
+                                tension: 0.3,
+                                pointBackgroundColor: '#3b82f6',
+                                pointBorderColor: '#fff',
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.05)'
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Number of Incidents'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.05)'
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Time Period'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    backgroundColor: 'rgba(255,255,255,0.9)',
+                                    titleColor: '#1e40af',
+                                    bodyColor: '#1e3a8a',
+                                    borderColor: '#e5e7eb',
+                                    borderWidth: 1,
+                                    displayColors: false,
+                                    padding: 10,
+                                    cornerRadius: 6
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Update pagination info
+                document.getElementById('trend-pagination-info').textContent = `Page ${trendCurrentPage} of ${trendTotalPages}`;
+
+                // Update button states
+                document.getElementById('trend-prev-btn').disabled = trendCurrentPage === 1;
+                document.getElementById('trend-next-btn').disabled = trendCurrentPage === trendTotalPages || trendTotalPages === 0;
+
+                // Update date range display
+                updateDateRange();
+            }
+
+            // Trend chart pagination controls
+            document.getElementById('trend-prev-btn').addEventListener('click', function() {
+                if (trendCurrentPage > 1) {
+                    trendCurrentPage--;
+                    initTrendChart();
+                }
+            });
+
+            document.getElementById('trend-next-btn').addEventListener('click', function() {
+                if (trendCurrentPage < trendTotalPages) {
+                    trendCurrentPage++;
+                    initTrendChart();
+                }
+            });
+
+            // Trend chart page size control
+            document.getElementById('trend-chart-page-size').addEventListener('change', function() {
+                const value = this.value;
+                if (value === 'all') {
+                    trendPageSize = trendFilteredLabels.length;
+                } else {
+                    trendPageSize = parseInt(value);
+                }
+                trendCurrentPage = 1;
+                trendTotalPages = Math.ceil(trendFilteredLabels.length / trendPageSize);
+                initTrendChart();
+            });
+
+            // Initialize trend chart
+            initTrendChart();
+
+            // Severity Distribution Chart
+            const severityLabels = {{ severity_labels|safe }};
+            const severityValues = {{ severity_values|safe }};
+            const severityCtx = document.getElementById('severity-chart').getContext('2d');
+            new Chart(severityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: severityLabels,
+                    datasets: [{
+                        data: severityValues,
+                        backgroundColor: [
+                            '#ef4444', // High - Red
+                            '#f59e0b', // Medium - Orange
+                            '#10b981'  // Low - Green
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Growth Analytics Charts
+            // Year-over-Year Growth Chart
+            const yearGrowthCtx = document.getElementById('year-growth-chart').getContext('2d');
+            const yearGrowthData = {
+                labels: [
+                    {% for year, data in year_over_year_growth.items %}
+                        "{{ data.prev_year }} to {{ year }}",
+                    {% endfor %}
+                ],
+                datasets: [{
+                    type: 'bar',
+                    label: 'Growth Rate (%)',
+                    data: [
+                        {% for year, data in year_over_year_growth.items %}
+                            {{ data.growth_rate|floatformat:1 }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: function(context) {
+                        const value = context.raw;
+                        return value >= 0 ? '#ef4444' : '#10b981';
+                    },
+                    yAxisID: 'y'
+                }, {
+                    type: 'line',
+                    label: 'Crime Count',
+                    data: [
+                        {% for year, data in year_over_year_growth.items %}
+                            {{ data.current_count }},
+                        {% endfor %}
+                    ],
+                    borderColor: '#1e3a8a',
+                    yAxisID: 'y1'
+                }]
+            };
+
+            new Chart(yearGrowthCtx, {
+                type: 'bar',
+                data: yearGrowthData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Growth Rate (%)'
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Crime Count'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const datasetLabel = context.dataset.label || '';
+                                    const value = context.raw || 0;
+
+                                    if (datasetLabel === 'Growth Rate (%)') {
+                                        return `${datasetLabel}: ${value}%`;
+                                    } else {
+                                        // Get the year data for this index
+                                        const yearIndex = context.dataIndex;
+                                        const yearData = [
+                                            {% for year, data in year_over_year_growth.items %}
+                                                {
+                                                    prev_count: {{ data.prev_count }},
+                                                    current_count: {{ data.current_count }}
+                                                },
+                                            {% endfor %}
+                                        ][yearIndex];
+
+                                        return `${datasetLabel}: ${value} (Base: ${yearData.prev_count})`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Month-over-Month Growth Chart
+            const monthGrowthCtx = document.getElementById('month-growth-chart').getContext('2d');
+            let monthGrowthChart;
+
+            // Process the month-over-month data
+            const monthGrowthAllData = {
+                years: {},
+                allLabels: [],
+                allGrowthRates: [],
+                allCounts: [],
+                allMonthData: []
+            };
+
+            {% for year, months in month_over_month_growth.items %}
+                monthGrowthAllData.years[{{ year }}] = {
+                    labels: [],
+                    growthRates: [],
+                    counts: [],
+                    monthData: []
+                };
+
+                {% for month, data in months.items %}
+                    monthGrowthAllData.years[{{ year }}].labels.push("{{ data.month_name }}");
+                    monthGrowthAllData.years[{{ year }}].growthRates.push({{ data.growth_rate|floatformat:1 }});
+                    monthGrowthAllData.years[{{ year }}].counts.push({{ data.current_count }});
+                    monthGrowthAllData.years[{{ year }}].monthData.push({
+                        prev_count: {{ data.prev_count }},
+                        current_count: {{ data.current_count }}
+                    });
+
+                    monthGrowthAllData.allLabels.push("{{ data.month_name }} ({{ year }})");
+                    monthGrowthAllData.allGrowthRates.push({{ data.growth_rate|floatformat:1 }});
+                    monthGrowthAllData.allCounts.push({{ data.current_count }});
+                    monthGrowthAllData.allMonthData.push({
+                        prev_count: {{ data.prev_count }},
+                        current_count: {{ data.current_count }}
+                    });
+                {% endfor %}
+            {% endfor %}
+
+            // Function to update the month growth chart based on selected year
+            function updateMonthGrowthChart(year) {
+                let labels, growthRates, counts, monthData;
+
+                if (year === 'all') {
+                    labels = monthGrowthAllData.allLabels;
+                    growthRates = monthGrowthAllData.allGrowthRates;
+                    counts = monthGrowthAllData.allCounts;
+                    monthData = monthGrowthAllData.allMonthData;
+
+                    // Show all year groups
+                    document.querySelectorAll('.year-group').forEach(group => {
+                        group.style.display = 'block';
+                    });
+                } else {
+                    year = parseInt(year);
+                    if (!monthGrowthAllData.years[year]) {
+                        // If the year doesn't exist in our data, show empty chart
+                        labels = [];
+                        growthRates = [];
+                        counts = [];
+                        monthData = [];
+                    } else {
+                        labels = monthGrowthAllData.years[year].labels.map(label => `${label} (${year})`);
+                        growthRates = monthGrowthAllData.years[year].growthRates;
+                        counts = monthGrowthAllData.years[year].counts;
+                        monthData = monthGrowthAllData.years[year].monthData;
+                    }
+
+                    // Show only the selected year group
+                    document.querySelectorAll('.year-group').forEach(group => {
+                        if (parseInt(group.getAttribute('data-year')) === year) {
+                            group.style.display = 'block';
+                        } else {
+                            group.style.display = 'none';
+                        }
+                    });
+                }
+
+                const chartData = {
+                    labels: labels,
+                    datasets: [{
+                        type: 'bar',
+                        label: 'Growth Rate (%)',
+                        data: growthRates,
+                        backgroundColor: function(context) {
+                            const value = context.raw;
+                            return value >= 0 ? '#ef4444' : '#10b981';
+                        },
+                        yAxisID: 'y'
+                    }, {
+                        type: 'line',
+                        label: 'Crime Count',
+                        data: counts,
+                        borderColor: '#1e3a8a',
+                        yAxisID: 'y1'
+                    }]
+                };
+
+                if (monthGrowthChart) {
+                    monthGrowthChart.data = chartData;
+                    monthGrowthChart.update();
+                } else {
+                    monthGrowthChart = new Chart(monthGrowthCtx, {
+                        type: 'bar',
+                        data: chartData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    position: 'left',
+                                    title: {
+                                        display: true,
+                                        text: 'Growth Rate (%)'
+                                    }
+                                },
+                                y1: {
+                                    beginAtZero: true,
+                                    position: 'right',
+                                    grid: {
+                                        drawOnChartArea: false
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Crime Count'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const datasetLabel = context.dataset.label || '';
+                                            const value = context.raw || 0;
+
+                                            if (datasetLabel === 'Growth Rate (%)') {
+                                                return `${datasetLabel}: ${value}%`;
+                                            } else {
+                                                const monthIndex = context.dataIndex;
+                                                if (monthIndex >= 0 && monthIndex < monthData.length) {
+                                                    const data = monthData[monthIndex];
+                                                    return `${datasetLabel}: ${value} (Base: ${data.prev_count})`;
+                                                } else {
+                                                    return `${datasetLabel}: ${value}`;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Initialize with all data
+            updateMonthGrowthChart('all');
+
+            // Add event listener for the year filter
+            document.getElementById('month-growth-year-filter').addEventListener('change', function() {
+                updateMonthGrowthChart(this.value);
+            });
+
+            // Crime Type Growth Chart with pagination
+            const crimeTypeGrowthCtx = document.getElementById('crime-type-growth-chart').getContext('2d');
+
+            // Get all crime types from crime_type_growth
+            const crimeTypeNames = [
+                {% for crime_type, growth_data in crime_type_growth.items %}
+                    "{{ crime_type }}",
+                {% endfor %}
+            ];
+
+            // Prepare data for all crime types
+            const crimeTypeGrowthFullData = {
+                labels: crimeTypeNames,
+                datasets: [
+                    {% for year in available_years %}
+                        {
+                            label: "{{ year }}",
+                            data: [
+                                {% for crime_type, growth_data in crime_type_growth.items %}
+                                    {% for growth in growth_data %}
+                                        {% if growth.year == year %}
+                                            {{ growth.current_count }},
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endfor %}
+                            ],
+                            backgroundColor: getRandomColor()
+                        },
+                    {% endfor %}
+                ]
+            };
+
+            // Crime Type Growth pagination variables
+            let crimeTypeChart;
+            let crimeTypePageSize = 10;
+            let crimeTypeCurrentPage = 1;
+            let crimeTypeFilteredLabels = [...crimeTypeNames];
+            let crimeTypeTotalPages = Math.ceil(crimeTypeFilteredLabels.length / crimeTypePageSize);
+
+            // Initialize crime type growth chart
+            function initCrimeTypeGrowthChart() {
+                // Get current page data
+                const startIdx = (crimeTypeCurrentPage - 1) * crimeTypePageSize;
+                const endIdx = Math.min(startIdx + crimeTypePageSize, crimeTypeFilteredLabels.length);
+                const currentLabels = crimeTypeFilteredLabels.slice(startIdx, endIdx);
+
+                // Create datasets for current page
+                const currentDatasets = [];
+                {% for year in available_years %}
+                    const dataset{{ year }} = {
+                        label: "{{ year }}",
+                        data: [],
+                        backgroundColor: getRandomColor()
+                    };
+
+                    for (let i = startIdx; i < endIdx; i++) {
+                        if (i < crimeTypeFilteredLabels.length) {
+                            const crimeType = crimeTypeFilteredLabels[i];
+                            let found = false;
+                            {% for crime_type, growth_data in crime_type_growth.items %}
+                                if ("{{ crime_type }}" === crimeType) {
+                                    {% for growth in growth_data %}
+                                        {% if growth.year == year %}
+                                            dataset{{ year }}.data.push({{ growth.current_count }});
+                                            found = true;
+                                        {% endif %}
+                                    {% endfor %}
+                                }
+                            {% endfor %}
+                            if (!found) {
+                                dataset{{ year }}.data.push(0);
+                            }
+                        }
+                    }
+                    currentDatasets.push(dataset{{ year }});
+                {% endfor %}
+
+                // Create or update chart
+                if (crimeTypeChart) {
+                    crimeTypeChart.data.labels = currentLabels;
+                    crimeTypeChart.data.datasets = currentDatasets;
+                    crimeTypeChart.update();
+                } else {
+                    crimeTypeChart = new Chart(crimeTypeGrowthCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: currentLabels,
+                            datasets: currentDatasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    stacked: true,
+                                    display: false // Hide x-axis labels to remove the long crime type names
+                                },
+                                y: {
+                                    stacked: true,
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Number of Crimes'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        title: function(context) {
+                                            const index = context[0].dataIndex;
+                                            return currentLabels[index];
+                                        },
+                                        label: function(context) {
+                                            const year = context.dataset.label;
+                                            const count = context.raw;
+
+                                            // Find base count from previous year if available
+                                            let baseCount = "N/A";
+                                            const crimeType = currentLabels[context.dataIndex];
+                                            {% for crime_type, growth_data in crime_type_growth.items %}
+                                                if ("{{ crime_type }}" === crimeType) {
+                                                    {% for growth in growth_data %}
+                                                        if ("{{ growth.year }}" === year) {
+                                                            baseCount = {{ growth.prev_count }};
+                                                        }
+                                                    {% endfor %}
+                                                }
+                                            {% endfor %}
+
+                                            return `${year}: ${count} (Base: ${baseCount})`;
+                                        }
+                                    }
+                                }
+                            },
+                            onHover: (event, elements) => {
+                                const tooltip = document.getElementById('crime-type-tooltip');
+                                if (elements.length) {
+                                    const index = elements[0].index;
+                                    const crimeType = currentLabels[index];
+
+                                    tooltip.style.display = 'block';
+                                    tooltip.style.left = event.native.clientX + 'px';
+                                    tooltip.style.top = event.native.clientY - 40 + 'px';
+                                    tooltip.textContent = crimeType;
+                                } else {
+                                    tooltip.style.display = 'none';
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Update pagination info
+                document.getElementById('crime-type-pagination-info').textContent = `Page ${crimeTypeCurrentPage} of ${crimeTypeTotalPages} (${crimeTypeFilteredLabels.length} types)`;
+
+                // Update button states
+                document.getElementById('crime-type-prev-btn').disabled = crimeTypeCurrentPage === 1;
+                document.getElementById('crime-type-next-btn').disabled = crimeTypeCurrentPage === crimeTypeTotalPages || crimeTypeTotalPages === 0;
+            }
+
+            // Crime type growth pagination controls
+            document.getElementById('crime-type-prev-btn').addEventListener('click', function() {
+                if (crimeTypeCurrentPage > 1) {
+                    crimeTypeCurrentPage--;
+                    initCrimeTypeGrowthChart();
+                }
+            });
+
+            document.getElementById('crime-type-next-btn').addEventListener('click', function() {
+                if (crimeTypeCurrentPage < crimeTypeTotalPages) {
+                    crimeTypeCurrentPage++;
+                    initCrimeTypeGrowthChart();
+                }
+            });
+
+            // Crime type growth page size control
+            document.getElementById('crime-type-growth-page-size').addEventListener('change', function() {
+                const value = this.value;
+                if (value === 'all') {
+                    crimeTypePageSize = crimeTypeFilteredLabels.length;
+                } else {
+                    crimeTypePageSize = parseInt(value);
+                }
+                crimeTypeCurrentPage = 1;
+                crimeTypeTotalPages = Math.ceil(crimeTypeFilteredLabels.length / crimeTypePageSize);
+                initCrimeTypeGrowthChart();
+            });
+
+            // Crime type growth search
+            document.getElementById('crime-type-growth-search').addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+
+                if (searchTerm === '') {
+                    crimeTypeFilteredLabels = [...crimeTypeNames];
+                } else {
+                    // Filter data based on search term
+                    crimeTypeFilteredLabels = crimeTypeNames.filter(name =>
+                        name.toLowerCase().includes(searchTerm)
+                    );
+                }
+
+                // Ensure that year-over-year data stays the same when filtering
+                crimeTypeCurrentPage = 1;
+                crimeTypeTotalPages = Math.ceil(crimeTypeFilteredLabels.length / crimeTypePageSize);
+
+                // Only reinitialize the chart with the filtered labels, but keep the same datasets
+                initCrimeTypeGrowthChart();
+            });
+
+            // Initialize crime type growth chart
+            initCrimeTypeGrowthChart();
+
+            // Seasonal Patterns Chart
+            const seasonalCtx = document.getElementById('seasonal-chart').getContext('2d');
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+            const seasonalData = {
+                labels: monthNames,
+                datasets: [{
+                    label: 'Average Crimes per Month',
+                    data: [
+                        {% if monthly_crime_trends.month_stats.1 %}{{ monthly_crime_trends.month_stats.1.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.2 %}{{ monthly_crime_trends.month_stats.2.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.3 %}{{ monthly_crime_trends.month_stats.3.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.4 %}{{ monthly_crime_trends.month_stats.4.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.5 %}{{ monthly_crime_trends.month_stats.5.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.6 %}{{ monthly_crime_trends.month_stats.6.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.7 %}{{ monthly_crime_trends.month_stats.7.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.8 %}{{ monthly_crime_trends.month_stats.8.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.9 %}{{ monthly_crime_trends.month_stats.9.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.10 %}{{ monthly_crime_trends.month_stats.10.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.11 %}{{ monthly_crime_trends.month_stats.11.avg|floatformat:1 }}{% else %}0{% endif %},
+                        {% if monthly_crime_trends.month_stats.12 %}{{ monthly_crime_trends.month_stats.12.avg|floatformat:1 }}{% else %}0{% endif %}
+                    ],
+                    backgroundColor: '#1e3a8a',
+                    borderColor: '#1e40af',
+                    borderWidth: 1
+                }]
+            };
+
+            new Chart(seasonalCtx, {
+                type: 'bar',
+                data: seasonalData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Average Number of Crimes'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const monthIndex = context.dataIndex;
+                                    const monthName = monthNames[monthIndex];
+                                    {% if monthly_crime_trends.seasonal_insights.high_season %}
+                                        if ({{ monthly_crime_trends.seasonal_insights.high_season|safe }}.includes(monthName)) {
+                                            return 'High Season';
+                                        }
+                                    {% endif %}
+                                    {% if monthly_crime_trends.seasonal_insights.low_season %}
+                                        if ({{ monthly_crime_trends.seasonal_insights.low_season|safe }}.includes(monthName)) {
+                                            return 'Low Season';
+                                        }
+                                    {% endif %}
+                                    return '';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Error initializing charts:", error);
+        }
+    }
+
+    // Initialize charts
+    initializeCharts();
+
+    // Tab switching functionality
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked tab
+            tab.classList.add('active');
+
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Show the corresponding tab content
+            const tabId = tab.getAttribute('data-tab');
+            document.getElementById(`${tabId}-tab`).classList.add('active');
+        });
+    });
+
+    // Helper function to generate random colors for charts
+    function getRandomColor() {
+        const colors = [
+            '#1e3a8a', '#1e40af', '#1d4ed8', '#2563eb', '#3b82f6',
+            '#60a5fa', '#93c5fd', '#bfdbfe', '#0c4a6e', '#0369a1',
+            '#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd'
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    // Add this after the crimeData array is defined
+    const totalRecords = {{ total_crimes }};
+    const recordsWithCoordinates = crimeData.length;
+
+    // Remove the below code that shows records without coordinates in growth analytics
+    // const recordsWithoutCoordinates = totalRecords - recordsWithCoordinates;
+
+    // // Add a note about records without coordinates if there are any
+    // if (recordsWithoutCoordinates > 0) {
+    //     const mapContainer = document.getElementById('crime-map');
+    //     const coordinateInfo = document.createElement('div');
+    //     coordinateInfo.className = 'coordinate-info';
+    //     coordinateInfo.style.position = 'absolute';
+    //     coordinateInfo.style.bottom = '10px';
+    //     coordinateInfo.style.right = '10px';
+    //     coordinateInfo.style.zIndex = '1000';
+    //     coordinateInfo.innerHTML = `<strong>Note:</strong> ${recordsWithoutCoordinates} of ${totalRecords} records (${Math.round(recordsWithoutCoordinates/totalRecords*100)}%) lack coordinate data and are not shown on the map.`;
+    //     mapContainer.style.position = 'relative';
+    //     mapContainer.appendChild(coordinateInfo);
+    // }
+
+    // Remove event listener for the search bar in Crime Trends Over Time section
+    /*
+    document.getElementById('crime-type-search').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+
+        // If we have crime data and a search term
+        if (crimeData.length > 0 && searchTerm) {
+            // Filter crime data by the search term
+            const filteredData = crimeData.filter(crime =>
+                crime.offense.toLowerCase().includes(searchTerm)
+            );
+
+            // Group filtered data by month/year for the trend chart
+            const timeGroups = {};
+            filteredData.forEach(crime => {
+                const date = new Date(crime.date);
+                const key = `${date.getMonth() + 1}/${date.getFullYear()}`;
+
+                if (!timeGroups[key]) {
+                    timeGroups[key] = 0;
+                }
+                timeGroups[key]++;
+            });
+
+            // Convert to arrays for the chart
+            const sortedKeys = Object.keys(timeGroups).sort((a, b) => {
+                const [monthA, yearA] = a.split('/');
+                const [monthB, yearB] = b.split('/');
+                return new Date(yearA, monthA - 1) - new Date(yearB, monthB - 1);
+            });
+
+            const filteredLabels = sortedKeys;
+            const filteredValues = sortedKeys.map(key => timeGroups[key]);
+
+            // Update the chart
+            if (trendChart) {
+                trendChart.data.labels = filteredLabels;
+                trendChart.data.datasets[0].data = filteredValues;
+                trendChart.update();
+
+                // Update pagination info
+                document.getElementById('trend-pagination-info').textContent =
+                    `Showing ${filteredLabels.length} periods for "${searchTerm}"`;
+
+                // Disable pagination buttons when filtering
+                document.getElementById('trend-prev-btn').disabled = true;
+                document.getElementById('trend-next-btn').disabled = true;
+            }
+        } else {
+            // If search is cleared, restore original data
+            if (trendChart) {
+                trendCurrentPage = 1;
+                const startIdx = 0;
+                const endIdx = Math.min(trendPageSize, trendFilteredLabels.length);
+                const currentLabels = trendFilteredLabels.slice(startIdx, endIdx);
+                const currentValues = trendFilteredValues.slice(startIdx, endIdx);
+
+                trendChart.data.labels = currentLabels;
+                trendChart.data.datasets[0].data = currentValues;
+                trendChart.update();
+
+                // Update pagination info
+                document.getElementById('trend-pagination-info').textContent =
+                    `Page ${trendCurrentPage} of ${trendTotalPages}`;
+
+                // Update button states
+                document.getElementById('trend-prev-btn').disabled = trendCurrentPage === 1;
+                document.getElementById('trend-next-btn').disabled =
+                    trendCurrentPage === trendTotalPages || trendTotalPages === 0;
+            }
+        }
+    });
+    */
+
+    // Handle pagination for location severity table using AJAX
+    document.querySelectorAll('.pagination .page-link').forEach(link => {
+        if (!link.classList.contains('active')) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+
+                // Create URL with current filters and new page
+                const url = new URL(window.location.href);
+                url.searchParams.set('location_page', page);
+                url.searchParams.set('ajax', 'true');
+
+                // Fetch the new page data
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update the table with new data
+                        const tbody = document.querySelector('.location-table tbody');
+                        tbody.innerHTML = '';
+
+                        data.locations.forEach(location => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${location.name}</td>
+                                <td><span class="severity-badge severity-high">${location.high}</span></td>
+                                <td><span class="severity-badge severity-medium">${location.medium}</span></td>
+                                <td><span class="severity-badge severity-low">${location.low}</span></td>
+                                <td>${location.high + location.medium + location.low}</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+
+                        // Update pagination
+                        updatePagination(data.pagination);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching location data:', error);
+                    });
+            });
+        }
+    });
+
+    function updatePagination(pagination) {
+        const paginationContainer = document.querySelector('.pagination');
+        let html = '';
+
+        // Previous buttons
+        if (pagination.has_previous) {
+            html += `
+                <span class="page-item">
+                    <a class="page-link" href="javascript:void(0)" data-page="1">&laquo;</a>
+                </span>
+                <span class="page-item">
+                    <a class="page-link" href="javascript:void(0)" data-page="${pagination.previous_page}">&lsaquo;</a>
+                </span>
+            `;
+        }
+
+        // Page numbers
+        for (let i = 1; i <= pagination.num_pages; i++) {
+            if (pagination.current_page === i) {
+                html += `<span class="page-item"><span class="page-link active">${i}</span></span>`;
+            } else if (i > pagination.current_page - 3 && i < pagination.current_page + 3) {
+                html += `<span class="page-item"><a class="page-link" href="javascript:void(0)" data-page="${i}">${i}</a></span>`;
+            }
+        }
+
+        // Next buttons
+        if (pagination.has_next) {
+            html += `
+                <span class="page-item">
+                    <a class="page-link" href="javascript:void(0)" data-page="${pagination.next_page}">&rsaquo;</a>
+                </span>
+                <span class="page-item">
+                    <a class="page-link" href="javascript:void(0)" data-page="${pagination.num_pages}">&raquo;</a>
+                </span>
+            `;
+        }
+
+        paginationContainer.innerHTML = html;
+
+        // Reattach event listeners to new pagination links
+        document.querySelectorAll('.pagination .page-link').forEach(link => {
+            if (!link.classList.contains('active')) {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const page = this.getAttribute('data-page');
+
+                    // Create URL with current filters and new page
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('location_page', page);
+                    url.searchParams.set('ajax', 'true');
+
+                    // Fetch the new page data (reuse the same fetch logic)
+                    fetch(url)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Update the table with new data
+                            const tbody = document.querySelector('.location-table tbody');
+                            tbody.innerHTML = '';
+
+                            data.locations.forEach(location => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${location.name}</td>
+                                    <td><span class="severity-badge severity-high">${location.high}</span></td>
+                                    <td><span class="severity-badge severity-medium">${location.medium}</span></td>
+                                    <td><span class="severity-badge severity-low">${location.low}</span></td>
+                                    <td>${location.high + location.medium + location.low}</td>
+                                `;
+                                tbody.appendChild(row);
+                            });
+
+                            // Update pagination
+                            updatePagination(data.pagination);
+                        })
+                        .catch(error => {
+                            console.error('Error fetching location data:', error);
+                        });
+                });
+            }
+        });
+    }
+});
+</script>
+
+<script>
+    // Check if the page was redirected from an upload
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get the URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // If coming from an upload (can be enhanced with specific parameters)
+        if (document.referrer.includes('upload')) {
+            // Success message removed as requested
+        }
+    });
+</script>
+
+<!-- Month dropdown fix -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Month name mapping
+    const monthNames = {
+        '1': 'January',
+        '2': 'February',
+        '3': 'March',
+        '4': 'April',
+        '5': 'May',
+        '6': 'June',
+        '7': 'July',
+        '8': 'August',
+        '9': 'September',
+        '10': 'October',
+        '11': 'November',
+        '12': 'December',
+        '': 'Select Month'
+    };
+    
+    // Completely rebuild the month dropdown
+    function rebuildMonthDropdown() {
+        console.log("Rebuilding month dropdown");
+        
+        // Get the original dropdown container
+        const originalDropdown = document.getElementById('month-dropdown');
+        if (!originalDropdown) return;
+        
+        // Get the available months from the existing dropdown
+        const availableMonths = [];
+        const originalOptions = originalDropdown.querySelectorAll('.searchable-dropdown-option');
+        originalOptions.forEach(option => {
+            const value = option.getAttribute('data-value');
+            if (value) availableMonths.push(value);
+        });
+        
+        // Get the original hidden input value (if any)
+        const originalInput = document.getElementById('month');
+        const selectedValue = originalInput ? originalInput.value : '';
+        
+        // Create a completely new dropdown
+        const newDropdown = document.createElement('div');
+        newDropdown.className = 'searchable-dropdown';
+        newDropdown.id = 'month-dropdown';
+        
+        // Create the visible select part
+        const selectPart = document.createElement('div');
+        selectPart.className = 'searchable-dropdown-select';
+        
+        const selectText = document.createElement('span');
+        selectText.textContent = selectedValue ? monthNames[selectedValue] : 'Select Month';
+        selectPart.appendChild(selectText);
+        
+        // Create the options container
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'searchable-dropdown-options';
+        
+        // Create search box
+        const searchBox = document.createElement('div');
+        searchBox.className = 'searchable-dropdown-search';
+        
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Search month...';
+        searchBox.appendChild(searchInput);
+        
+        optionsContainer.appendChild(searchBox);
+        
+        // Add "Select All" option
+        const selectAllOption = document.createElement('div');
+        selectAllOption.className = 'searchable-dropdown-option';
+        selectAllOption.setAttribute('data-value', '');
+        selectAllOption.textContent = 'Select All';
+        optionsContainer.appendChild(selectAllOption);
+        
+        // Add month options
+        availableMonths.forEach(monthValue => {
+            const option = document.createElement('div');
+            option.className = 'searchable-dropdown-option';
+            if (selectedValue === monthValue) {
+                option.classList.add('selected');
+            }
+            option.setAttribute('data-value', monthValue);
+            option.textContent = monthNames[monthValue];
+            optionsContainer.appendChild(option);
+        });
+        
+        // Create hidden input
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'month';
+        hiddenInput.id = 'month';
+        hiddenInput.value = selectedValue;
+        
+        // Assemble the dropdown
+        newDropdown.appendChild(selectPart);
+        newDropdown.appendChild(optionsContainer);
+        newDropdown.appendChild(hiddenInput);
+        
+        // Replace the original dropdown
+        originalDropdown.parentNode.replaceChild(newDropdown, originalDropdown);
+        
+        // Add event listeners
+        selectPart.addEventListener('click', function() {
+            newDropdown.classList.toggle('active');
+        });
+        
+        // Handle option selection
+        const options = newDropdown.querySelectorAll('.searchable-dropdown-option');
+        options.forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                const text = monthNames[value];
+                
+                // Update hidden input
+                hiddenInput.value = value;
+                
+                // Update display text
+                selectText.textContent = text;
+                
+                // Update selected class
+                options.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                
+                // Close dropdown
+                newDropdown.classList.remove('active');
+                
+                console.log('Month selected:', value, text);
+            });
+        });
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const term = this.value.toLowerCase();
+            options.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                if (term === '' || text.includes(term) || option.getAttribute('data-value') === '') {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!newDropdown.contains(e.target)) {
+                newDropdown.classList.remove('active');
+            }
+        });
+    }
+    
+    // Run the fix
+    rebuildMonthDropdown();
+    
+    // Also fix the filter form submission
+    const filterForm = document.getElementById('filter-form');
+    if (filterForm) {
+        const originalSubmit = filterForm.onsubmit;
+        filterForm.addEventListener('submit', function(e) {
+            // Make sure the month value is passed correctly
+            const monthInput = document.getElementById('month');
+            if (monthInput) {
+                console.log('Submitting with month:', monthInput.value, 
+                    monthInput.value ? monthNames[monthInput.value] : 'none');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

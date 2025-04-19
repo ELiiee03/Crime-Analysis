@@ -1,0 +1,729 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Users{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Modern dashboard styles */
+    .dashboard-container {
+        --card-border-radius: 16px;
+        --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        --card-border: 1px solid rgba(229, 231, 235, 0.8);
+        --card-bg: #ffffff;
+        --gradient-blue: linear-gradient(135deg, #3a7bfd, #2563eb);
+        --primary-color: #1e3a8a;
+        --secondary-color: #3b82f6;
+        --border-radius-sm: 0.75rem;
+        --border-radius-md: 1rem;
+        --border-radius-lg: 1.5rem;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+        opacity: 0;
+    }
+
+    /* Main content area */
+    .main-content {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        background-color: var(--primary-color);
+        min-height: 100vh;
+    }
+
+    /* Header section with blue background */
+    .header-section {
+        background-color: var(--primary-color);
+        background-image: linear-gradient(to right, rgba(30, 58, 138, 1), rgba(37, 99, 235, 0.8));
+        color: white;
+        padding: 2rem 2rem 1.5rem;
+        border-top-left-radius: 30px;
+        border-top-right-radius: 30px;
+    }
+
+    /* Page header */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        width: 100%;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .page-description {
+        margin: 0.5rem 0 0 0;
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.8);
+        max-width: 600px;
+    }
+
+    .header-divider {
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.2);
+        width: 100%;
+        margin: 1rem 0 1.5rem;
+    }
+
+    .add-user-btn {
+        display: inline-flex;
+        align-items: center;
+        background-color: rgba(255, 255, 255, 0.15);
+        color: white;
+        padding: 0.6rem 1.2rem;
+        border-radius: 1.0rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .add-user-btn:hover {
+        background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .add-user-btn i {
+        margin-right: 0.5rem;
+
+    }
+
+    /* Search form styling */
+    .search-form-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .search-form {
+        display: flex;
+        border-radius: 1.0rem;
+        overflow: hidden;
+        width: 100%;
+        max-width: 400px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .search-input {
+        flex-grow: 1;
+        padding: 0.65rem 1rem;
+        border: none;
+        outline: none;
+        font-size: 0.875rem;
+        color: white;
+        background-color: transparent;
+    }
+
+    .search-input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .search-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(255, 255, 255, 0.15);
+        color: white;
+        border: none;
+        padding: 0.5rem;
+        width: 2.5rem;
+        transition: all 0.2s ease;
+        border-top-right-radius: var(--border-radius-md);
+        border-bottom-right-radius: var(--border-radius-md);
+
+    }
+
+    .search-button:hover {
+        background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Users table styling */
+    .content-section {
+        background-color: #f3f4f6;
+        padding: 2rem;
+        min-height: calc(100vh - 200px);
+        border-radius: var(--border-radius-lg);
+        margin-top: -1.5rem;
+        border-bottom-right-radius: 30px;
+        border-bottom-left-radius: 30px;
+    }
+
+    .users-table-container {
+        background-color: white;
+        border-radius: 1.0rem;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .table-header {
+        background: white;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 1.25rem 1.5rem;
+        border-top-left-radius: var(--border-radius-lg);
+        border-top-right-radius: var(--border-radius-lg);
+    }
+
+    .table-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        color: #111827;
+        display: flex;
+        align-items: center;
+    }
+
+    .table-header h2 i {
+        margin-right: 0.75rem;
+        font-size: 1.25rem;
+        color: var(--secondary-color);
+    }
+
+    .users-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .users-table th {
+        background-color: #f9fafb;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        padding: 0.75rem 1.5rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .users-table tr {
+        transition: all 0.2s ease;
+    }
+
+    .users-table tr:hover {
+        background-color: #f9fafb;
+    }
+
+    .users-table td {
+        padding: 1rem 1.5rem;
+        font-size: 0.875rem;
+        color: #374151;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .users-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* User avatar */
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #e5edff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--secondary-color);
+    }
+
+    /* Status badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.85rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: 9999px;
+    }
+
+    .status-badge.active {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .status-badge.inactive {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    /* Action buttons styling */
+    .actions-cell {
+        text-align: right;
+        width: 150px;
+    }
+
+    .actions-container {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    .action-icon {
+        color: #6b7280;
+        padding: 0.4rem 0.7rem;
+        border-radius: 1.0rem;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .action-icon i {
+        margin-right: 0.4rem;
+        font-size: 0.875rem;
+    }
+
+    .action-icon.edit {
+        color: var(--secondary-color);
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+
+    .action-icon.edit:hover {
+        background-color: rgba(59, 130, 246, 0.2);
+    }
+
+    .action-icon.delete {
+        color: #ef4444;
+        background-color: rgba(239, 68, 68, 0.1);
+    }
+
+    .action-icon.delete:hover {
+        background-color: rgba(239, 68, 68, 0.2);
+    }
+
+    /* Empty state */
+    .empty-state {
+        padding: 3rem 0;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        font-size: 1rem;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    /* Modal styling */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 50;
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .modal.open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-content {
+        position: relative;
+        width: 100%;
+        max-width: 32rem;
+        margin: 1.5rem;
+        background-color: #ffffff;
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        transform: scale(0.95);
+        transition: transform 0.3s ease;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .modal.open .modal-content {
+        transform: scale(1);
+    }
+
+    .modal-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        background-color: #f9fafb;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        background-color: #f9fafb;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    /* Button styling */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.5;
+        text-align: center;
+        text-decoration: none;
+        vertical-align: middle;
+        cursor: pointer;
+        user-select: none;
+        border: 1px solid transparent;
+        border-radius: var(--border-radius-md);
+        transition: all 0.2s ease-in-out;
+    }
+
+    .btn-primary {
+        color: #ffffff;
+        background: var(--gradient-blue);
+        border-color: transparent;
+    }
+
+    .btn-danger {
+        color: #ffffff;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        border-color: transparent;
+    }
+
+    .btn-secondary {
+        color: #4b5563;
+        background-color: #f3f4f6;
+        border-color: #d1d5db;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn i {
+        margin-right: 0.5rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .add-user-btn {
+            margin-top: 1rem;
+        }
+
+        .header-section {
+            padding: 1.5rem 1rem;
+        }
+
+        .content-section {
+            padding: 1rem;
+        }
+        
+        /* Enhanced mobile table display */
+        .users-table {
+            font-size: 0.875rem;
+        }
+        
+        .actions-container {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .action-icon {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* Additional smaller screen adjustments */
+    @media (max-width: 576px) {
+        .page-title {
+            font-size: 1.5rem;
+        }
+        
+        .page-description {
+            font-size: 0.875rem;
+        }
+        
+        .users-table thead {
+            display: none; /* Hide table headers on very small screens */
+        }
+        
+        .users-table, 
+        .users-table tbody, 
+        .users-table tr, 
+        .users-table td {
+            display: block;
+            width: 100%;
+        }
+        
+        .users-table tr {
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+            position: relative;
+        }
+        
+        .users-table td {
+            text-align: left;
+            padding: 0.5rem 1rem;
+            border-bottom: none;
+        }
+        
+        .users-table td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 0.25rem;
+            color: #6b7280;
+        }
+        
+        .users-table td:last-child {
+            border-bottom: none;
+        }
+        
+        .search-form {
+            max-width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <!-- Header Section with Blue Background -->
+    <div class="header-section">
+        <!-- Page Header -->
+        <div class="page-header fade-in">
+            <div>
+                <h1 class="page-title">Manage Users</h1>
+                <p class="page-description">Add, edit and manage user accounts and their permissions.</p>
+            </div>
+            <a href="{% url 'create_user' %}" class="add-user-btn">
+                <i class="fas fa-user-plus"></i>
+                Add New User
+            </a>
+        </div>
+
+        <div class="header-divider"></div>
+
+        <!-- Search Form -->
+        <div class="search-form-container">
+            <form class="search-form" id="search-form">
+                <input
+                    type="text"
+                    id="user-search"
+                    class="search-input"
+                    placeholder="Search by username, name or email..."
+                >
+                <button type="submit" class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Content Section with Table -->
+    <div class="content-section">
+        <!-- Users Table -->
+        <div class="users-table-container fade-in">
+            <div class="table-header">
+                <h2><i class="fas fa-users"></i> System Users</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>USER</th>
+                            <th>FULL NAME</th>
+                            <th>EMAIL</th>
+                            <th>STATUS</th>
+                            <th class="text-right">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        {% for user in users %}
+                        <tr class="user-row">
+                            <td data-label="USER">
+                                <div class="flex items-center">
+                                    <div class="user-avatar mr-3">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <span class="font-medium">{{ user.username }}</span>
+                                </div>
+                            </td>
+                            <td data-label="FULL NAME">{{ user.first_name }} {{ user.last_name }}</td>
+                            <td data-label="EMAIL">{{ user.email|default:"No email" }}</td>
+                            <td data-label="STATUS">
+                                <span class="status-badge {% if user.is_active %}active{% else %}inactive{% endif %}">
+                                    {% if user.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </td>
+                            <td data-label="ACTIONS" class="actions-cell">
+                                <div class="actions-container">
+                                    <a href="{% url 'edit_user' user.id %}" class="action-icon edit" title="Edit User">
+                                        <i class="fas fa-edit"></i>
+                                        Edit
+                                    </a>
+                                    <button
+                                        class="action-icon delete delete-user-btn"
+                                        data-user-id="{{ user.id }}"
+                                        data-username="{{ user.username }}"
+                                        title="Delete User"
+                                    >
+                                        <i class="fas fa-trash-alt"></i>
+                                        Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <i class="fas fa-users-slash"></i>
+                                    <p>No users found. <a href="{% url 'create_user' %}" class="text-blue-600 hover:text-blue-700">Create a new user</a>.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete User Modal -->
+<div id="delete-modal" class="modal" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="text-lg font-medium text-gray-900" id="modal-title">
+                Delete User
+            </h3>
+        </div>
+        <div class="modal-body">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 text-red-600">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-500">
+                        Are you sure you want to delete the user <span id="delete-username" class="font-semibold"></span>? This action cannot be undone.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <form id="delete-user-form" method="post" action="{% url 'delete_user' user.id %}">
+                {% csrf_token %}
+                <button type="button" id="cancel-delete" class="btn btn-secondary">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // User search functionality
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('user-search');
+    const userRows = document.querySelectorAll('.user-row');
+
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        performSearch();
+    });
+
+    searchInput.addEventListener('keyup', function() {
+        performSearch();
+    });
+
+    function performSearch() {
+        const searchTerm = searchInput.value.toLowerCase();
+
+        userRows.forEach(row => {
+            const username = row.querySelector('td:first-child .font-medium').textContent.toLowerCase();
+            const fullname = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            const email = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+
+            if (username.includes(searchTerm) || fullname.includes(searchTerm) || email.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Delete user modal functionality
+    const deleteModal = document.getElementById('delete-modal');
+    const deleteButtons = document.querySelectorAll('.delete-user-btn');
+    const cancelDelete = document.getElementById('cancel-delete');
+    const deleteForm = document.getElementById('delete-user-form');
+    const deleteUsername = document.getElementById('delete-username');
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const username = this.getAttribute('data-username');
+
+            deleteForm.action = `/delete-user/${userId}/`;
+            deleteUsername.textContent = username;
+            deleteModal.classList.add('open');
+        });
+    });
+
+    cancelDelete.addEventListener('click', function() {
+        deleteModal.classList.remove('open');
+    });
+
+    // Close modal when clicking outside
+    deleteModal.addEventListener('click', function(e) {
+        if (e.target === deleteModal) {
+            deleteModal.classList.remove('open');
+        }
+    });
+});
+</script>
+{% endblock %}

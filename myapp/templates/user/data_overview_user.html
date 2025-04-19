@@ -1,0 +1,493 @@
+{% extends 'base_user.html' %}
+{% load static %}
+
+{% block title %}Data Overview{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Modern dashboard styles */
+    .dashboard-container {
+        --card-border-radius: 16px;
+        --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        --card-border: 1px solid rgba(229, 231, 235, 0.8);
+        --card-bg: #ffffff;
+        --gradient-blue: linear-gradient(135deg, #3a7bfd, #2563eb);
+        --primary-color: #1e3a8a;
+        --secondary-color: #3b82f6;
+        --border-radius-sm: 0.75rem;
+        --border-radius-md: 1rem;
+        --border-radius-lg: 1.5rem;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+        opacity: 0;
+    }
+
+    /* Main content area */
+    .main-content {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        background-color: var(--primary-color);
+        min-height: 100vh;
+    }
+
+    /* Header section with blue background */
+    .header-section {
+        background-color: var(--primary-color);
+        background-image: linear-gradient(to right, rgba(30, 58, 138, 1), rgba(37, 99, 235, 0.8));
+        color: white;
+        padding: 2rem 2rem 1.5rem;
+        border-top-left-radius: 30px;
+        border-top-right-radius: 30px;
+    }
+
+    /* Page header */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        width: 100%;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .page-description {
+        margin: 0.5rem 0 0 0;
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.8);
+        max-width: 600px;
+    }
+
+    .header-divider {
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.2);
+        width: 100%;
+        margin: 1rem 0 1.5rem;
+    }
+
+    /* Search form styling */
+    .search-form-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .search-form {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        max-width: 400px;
+    }
+
+    .search-input-container {
+        position: relative;
+        flex-grow: 1;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 0.65rem 1rem 0.65rem 2.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        font-size: 0.875rem;
+        outline: none;
+        transition: background-color 0.2s ease;
+    }
+
+    .search-input:focus {
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .search-input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(255, 255, 255, 0.6);
+        pointer-events: none;
+    }
+
+    /* Content section styling */
+    .content-section {
+        background-color: #f3f4f6;
+        padding: 2rem;
+        min-height: calc(100vh - 200px);
+        border-radius: var(--border-radius-lg);
+        margin-top: -1.5rem;
+        border-bottom-right-radius: 30px;
+        border-bottom-left-radius: 30px;
+    }
+
+    .data-table-container {
+        background-color: white;
+        border-radius: 1.0rem;
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .table-header {
+        background: white;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .table-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        color: #111827;
+        display: flex;
+        align-items: center;
+    }
+
+    .table-header h2 i {
+        margin-right: 0.75rem;
+        font-size: 1.25rem;
+        color: var(--secondary-color);
+    }
+
+    .record-count {
+        font-size: 0.875rem;
+        color: #6b7280;
+        background-color: #f3f4f6;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .data-table th {
+        background-color: #f9fafb;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        padding: 0.75rem 1.5rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .data-table tr {
+        transition: all 0.2s ease;
+    }
+
+    .data-table tr:hover {
+        background-color: #f9fafb;
+    }
+
+    .data-table td {
+        padding: 1rem 1.5rem;
+        font-size: 0.875rem;
+        color: #374151;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .data-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Empty state */
+    .empty-state {
+        padding: 3rem 0;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        font-size: 1rem;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    /* Pagination styling */
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+        background-color: white;
+        padding: 1rem;
+        border-radius: 1.0rem;
+        box-shadow: var(--card-shadow);
+    }
+
+    .page-item {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0 0.5rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        color: #374151;
+        text-decoration: none;
+    }
+
+    .page-item:not(.disabled):not(.active):hover {
+        background-color: #f3f4f6;
+        color: var(--secondary-color);
+    }
+
+    .page-item.active {
+        background-color: var(--secondary-color);
+        color: white;
+    }
+
+    .page-item.disabled {
+        color: #9ca3af;
+        cursor: not-allowed;
+        background-color: #f3f4f6;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .header-section {
+            padding: 1.5rem 1rem;
+        }
+
+        .content-section {
+            padding: 1rem;
+        }
+        
+        .record-count {
+            display: block;
+            margin-top: 0.5rem;
+        }
+        
+        .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+    }
+
+    /* Additional smaller screen media query */
+    @media (max-width: 576px) {
+        .page-title {
+            font-size: 1.5rem;
+        }
+        
+        .page-description {
+            font-size: 0.875rem;
+        }
+        
+        .search-form {
+            width: 100%;
+            max-width: 100%;
+        }
+        
+        .search-input {
+            width: 100%;
+        }
+        
+        /* Responsive table for very small screens */
+        .data-table thead {
+            display: none; /* Hide table headers on very small screens */
+        }
+        
+        .data-table, 
+        .data-table tbody, 
+        .data-table tr, 
+        .data-table td {
+            display: block;
+            width: 100%;
+        }
+        
+        .data-table tr {
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+            position: relative;
+        }
+        
+        .data-table td {
+            text-align: left;
+            padding: 0.5rem 1rem;
+            border-bottom: none;
+        }
+        
+        .data-table td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 0.25rem;
+            color: #6b7280;
+        }
+        
+        .data-table td:last-child {
+            border-bottom: none;
+        }
+        
+        .pagination {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <!-- Header Section with Blue Background -->
+    <div class="header-section">
+        <!-- Page Header -->
+        <div class="page-header fade-in">
+            <div>
+                <h1 class="page-title">Data Overview</h1>
+                <p class="page-description">View and search crime data records in the system.</p>
+            </div>
+        </div>
+
+        <div class="header-divider"></div>
+
+        <!-- Search Form -->
+        <div class="search-form-container">
+            <form method="GET" class="search-form">
+                <div class="search-input-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input
+                        type="text"
+                        name="q"
+                        class="search-input"
+                        placeholder="Search by crime type, location, or ID..."
+                        value="{{ query }}"
+                        autocomplete="off"
+                    >
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Content Section with Table -->
+    <div class="content-section">
+        <!-- Data Table -->
+        <div class="data-table-container fade-in">
+            <div class="table-header">
+                <h2><i class="fas fa-database"></i> Crime Records</h2>
+                <span class="record-count">{{ data.paginator.count }} records</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>CRIME TYPE</th>
+                            <th>DATE</th>
+                            <th>TIME</th>
+                            <th>BARANGAY</th>
+                            <th>CITY</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in data %}
+                        <tr>
+                            <td data-label="ID">{{ item.id }}</td>
+                            <td data-label="CRIME TYPE">{{ item.offense }}</td>
+                            <td data-label="DATE">{{ item.date_committed }}</td>
+                            <td data-label="TIME">{{ item.time_committed }}</td>
+                            <td data-label="BARANGAY">{{ item.barangay }}</td>
+                            <td data-label="CITY">{{ item.city }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <i class="fas fa-folder-open"></i>
+                                    <p>No records found. Try adjusting your search criteria.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if data.paginator.num_pages > 1 %}
+        <div class="pagination fade-in">
+            {% if data.has_previous %}
+                <a href="?page=1&q={{ query }}" class="page-item">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+                <a href="?page={{ data.previous_page_number }}&q={{ query }}" class="page-item">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+            {% else %}
+                <span class="page-item disabled">
+                    <i class="fas fa-angle-double-left"></i>
+                </span>
+                <span class="page-item disabled">
+                    <i class="fas fa-angle-left"></i>
+                </span>
+            {% endif %}
+
+            <span class="page-item active">
+                {{ data.number }} of {{ data.paginator.num_pages }}
+            </span>
+
+            {% if data.has_next %}
+                <a href="?page={{ data.next_page_number }}&q={{ query }}" class="page-item">
+                    <i class="fas fa-angle-right"></i>
+                </a>
+                <a href="?page={{ data.paginator.num_pages }}&q={{ query }}" class="page-item">
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+            {% else %}
+                <span class="page-item disabled">
+                    <i class="fas fa-angle-right"></i>
+                </span>
+                <span class="page-item disabled">
+                    <i class="fas fa-angle-double-right"></i>
+                </span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

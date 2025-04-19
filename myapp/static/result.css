@@ -1,0 +1,216 @@
+/* General print styles */
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+        background: white !important;
+        color: black !important;
+        font-size: 12px;
+    }
+
+    .container-fluid {
+        width: 100% !important;
+        margin: 0;
+        padding: 10mm;
+    }
+
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+        margin-bottom: 15mm; /* Increased spacing between cards */
+        page-break-inside: avoid;
+    }
+
+    .card-header {
+        background-color: #fff !important;
+        color: #000 !important;
+        font-size: 14px !important;
+        font-weight: bold;
+    }
+
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+        page-break-inside: avoid;
+    }
+
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        page-break-inside: avoid;
+    }
+
+    .col-lg-8, .col-lg-4, .col-lg-12 {
+        width: 100% !important;
+    }
+
+    h2 {
+        font-size: 18px !important;
+        color: #000 !important;
+    }
+
+    /* Portrait-specific styles */
+    @page portrait {
+        size: portrait;
+        margin: 10mm;
+    }
+
+    /* Landscape-specific styles */
+    @page landscape {
+        size: landscape;
+        margin: 10mm;
+    }
+}
+
+/* Custom styles for improved appearance */
+.cluster-legend, .crime-type-legend {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+}
+
+.legend-title {
+    margin-top: 5px;
+}
+
+.legend-item {
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.legend-item:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.map-controls {
+    z-index: 1000;
+}
+
+.map-controls button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin-left: 5px;
+}
+
+/* Layer control styling */
+.leaflet-control-layers {
+    border-radius: 5px !important;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.2) !important;
+}
+
+.leaflet-control-layers-expanded {
+    padding: 10px !important;
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    min-width: 200px;
+}
+
+.leaflet-control-layers-selector {
+    margin-right: 5px;
+}
+
+.leaflet-control-layers-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Custom marker styles */
+.custom-div-icon {
+    background: transparent;
+    border: none;
+}
+
+.pin-marker {
+    position: relative;
+    width: 30px;
+    height: 40px;
+}
+
+.pin-marker svg {
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+    transition: all 0.3s ease;
+}
+
+.pin-marker:hover svg {
+    transform: scale(1.2);
+    filter: drop-shadow(0 3px 3px rgba(0,0,0,0.4));
+}
+
+.pin-marker-small {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+}
+
+.pin-marker-small svg {
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+/* Popup improvements */
+.crime-popup {
+    padding: 5px;
+}
+
+.popup-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.popup-title i {
+    font-size: 16px;
+}
+
+/* Print styles */
+@media print {
+    .container-fluid {
+        width: 100%;
+    }
+
+    form, .map-controls, #exportCSV, #printData, .pagination, #rowsPerPage, .leaflet-control-layers {
+        display: none !important;
+    }
+
+    .card {
+        break-inside: avoid;
+        margin-bottom: 20px;
+    }
+
+    #map {
+        height: 400px !important;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .legend-item {
+        margin-bottom: 5px;
+    }
+
+    #map {
+        height: 400px;
+    }
+
+    .pagination-info, .form-inline {
+        margin-bottom: 10px;
+    }
+
+    .d-flex.justify-content-between.align-items-center.mt-3 {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    nav[aria-label="Crime data pagination"] {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .leaflet-control-layers-expanded {
+        max-width: 80vw;
+    }
+}

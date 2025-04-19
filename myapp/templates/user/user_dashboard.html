@@ -1,0 +1,515 @@
+{% extends 'base_user.html' %}
+{% load static %}
+
+<!-- Hide the default Django messages for password updates -->
+{% block messages %}
+    {% if messages %}
+        {% for message in messages %}
+            {% if "password" not in message.message|lower and "updated" not in message.message|lower %}
+                {{ block.super }}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endblock %}
+
+{% block title %}User Dashboard{% endblock %}
+
+{% block extra_css %}
+<!-- SweetAlert2 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    /* Dashboard specific styles */
+    .dashboard-container {
+        --card-border-radius: 16px;
+        --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+        --card-border: 1px solid rgba(229, 231, 235, 0.8);
+        --card-bg: #ffffff;
+        --gradient-blue: linear-gradient(135deg, #3a7bfd, #2563eb);
+        --gradient-purple: linear-gradient(135deg, #8b5cf6, #6366f1);
+        --gradient-green: linear-gradient(135deg, #10b981, #059669);
+        --gradient-amber: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes scaleIn {
+        from { transform: scale(0.98); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes slideInRight {
+        from { transform: translateX(20px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+        opacity: 0;
+    }
+
+    .scale-in {
+        animation: scaleIn 0.5s ease-out forwards;
+        opacity: 0;
+    }
+
+    .slide-in {
+        animation: slideInRight 0.5s ease-out forwards;
+        opacity: 0;
+    }
+
+    /* Animation delays */
+    .delay-100 { animation-delay: 100ms; }
+    .delay-200 { animation-delay: 200ms; }
+    .delay-300 { animation-delay: 300ms; }
+    .delay-400 { animation-delay: 400ms; }
+    .delay-500 { animation-delay: 500ms; }
+
+    /* Welcome banner styling */
+    .welcome-banner {
+        border-radius: var(--card-border-radius);
+        background-image: linear-gradient(to right, rgba(30, 71, 133, 1), rgba(58, 123, 253, 0.8));
+        padding: 2rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.3), 0 8px 10px -6px rgba(37, 99, 235, 0.2);
+    }
+
+    .welcome-banner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        transform: translate(30%, -30%);
+    }
+
+    .welcome-banner::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        transform: translate(-30%, 30%);
+    }
+
+    .welcome-banner h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .welcome-banner p {
+        font-size: 1.125rem;
+        opacity: 0.9;
+        max-width: 600px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Quick action cards */
+    .quick-action-card {
+        background-color: white;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: var(--card-border);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .quick-action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .quick-action-card .icon-container {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .quick-action-card .icon-container i {
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    /* Stat cards */
+    .stat-card {
+        background-color: white;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: var(--card-border);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .stat-card .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stat-card .stat-icon i {
+        font-size: 1.25rem;
+        color: white;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stat-card .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    /* Recent activity styling */
+    .activity-card {
+        background-color: white;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: var(--card-border);
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .activity-card .card-header {
+        padding: 1.25rem;
+        border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+    }
+
+    .activity-card .card-body {
+        padding: 1rem;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .activity-item {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+        display: flex;
+        align-items: center;
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-item .activity-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+    }
+
+    .activity-item .activity-icon i {
+        font-size: 0.875rem;
+        color: white;
+    }
+
+    .activity-item .activity-content {
+        flex: 1;
+    }
+
+    .activity-item .activity-title {
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+
+    .activity-item .activity-time {
+        font-size: 0.8125rem;
+        color: #6b7280;
+    }
+
+    /* Empty state styling */
+    .empty-state {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 0.9375rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .welcome-banner {
+            padding: 1.5rem;
+        }
+
+        .welcome-banner h1 {
+            font-size: 1.5rem;
+        }
+
+        .welcome-banner p {
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container space-y-6">
+    <!-- Welcome Banner -->
+    <div class="welcome-banner fade-in">
+        <h1>Welcome, {% if user.first_name %}{{ user.first_name }}{% if user.last_name %} {{ user.last_name }}{% endif %}{% else %}{{ user.username }}{% endif %}</h1>
+        <p>Access your dashboard to view crime statistics and explore analytics.</p>
+    </div>
+
+    <!-- Quick Action Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Analytics Card -->
+        <div class="quick-action-card p-6 fade-in delay-200">
+            <div class="icon-container" style="background: var(--gradient-blue)">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">View Analytics</h3>
+            <p class="text-gray-600 mb-4">Explore crime statistics and data visualizations.</p>
+            <a href="{% url 'result' %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+                View Analytics
+                <i class="fas fa-arrow-right ml-2"></i>
+            </a>
+        </div>
+
+        <!-- Data Overview Card -->
+        <div class="quick-action-card p-6 fade-in delay-300">
+            <div class="icon-container" style="background: var(--gradient-purple)">
+                <i class="fas fa-database"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Data Overview</h3>
+            <p class="text-gray-600 mb-4">Browse and search through crime data records.</p>
+            <a href="{% url 'data_overview' %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+                View Data
+                <i class="fas fa-arrow-right ml-2"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- High Severity -->
+        <div class="stat-card p-4 fade-in delay-200">
+            <div class="flex items-center">
+                <div class="stat-icon mr-4" style="background: var(--gradient-blue)">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <div class="stat-label">High Severity</div>
+                    <div class="stat-value">{{ high_severity_count|default:"0" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medium Severity -->
+        <div class="stat-card p-4 fade-in delay-300">
+            <div class="flex items-center">
+                <div class="stat-icon mr-4" style="background: var(--gradient-amber)">
+                    <i class="fas fa-exclamation"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Medium Severity</div>
+                    <div class="stat-value">{{ medium_severity_count|default:"0" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Severity -->
+        <div class="stat-card p-4 fade-in delay-400">
+            <div class="flex items-center">
+                <div class="stat-icon mr-4" style="background: var(--gradient-green)">
+                    <i class="fas fa-info-circle"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Low Severity</div>
+                    <div class="stat-value">{{ low_severity_count|default:"0" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Settings Card -->
+    <div class="quick-action-card p-6 fade-in delay-500">
+        <div class="flex items-center mb-4">
+            <div class="icon-container" style="background: var(--gradient-green)">
+                <i class="fas fa-user-cog"></i>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-lg font-semibold text-gray-900">Account Settings</h3>
+                <p class="text-gray-600">Manage your account security</p>
+            </div>
+        </div>
+        <div class="flex flex-col md:flex-row gap-4">
+            <a href="{% url 'change_password' %}" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-key mr-2"></i> Change Password
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add staggered animation to elements
+        const animatedElements = document.querySelectorAll('.fade-in, .scale-in, .slide-in');
+        animatedElements.forEach((element, index) => {
+            if (!element.classList.contains('delay-100') &&
+                !element.classList.contains('delay-200') &&
+                !element.classList.contains('delay-300') &&
+                !element.classList.contains('delay-400') &&
+                !element.classList.contains('delay-500')) {
+                element.style.animationDelay = `${100 + (index * 50)}ms`;
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Remove password update message from DOM immediately when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Target the exact message format from the screenshot
+        const messageElements = document.querySelectorAll('.alert, .message, [role="alert"], .alert-success');
+        
+        // Also try to find any elements with green background that might contain the password message
+        document.querySelectorAll('*').forEach(el => {
+            const style = window.getComputedStyle(el);
+            const text = el.textContent || '';
+            
+            // If it has green background and contains password update message
+            if ((style.backgroundColor.includes('rgb(74, 222, 128)') || 
+                 style.backgroundColor.includes('rgb(22, 163, 74)') ||
+                 style.backgroundColor.includes('rgb(34, 197, 94)') || 
+                 el.classList.contains('bg-green') ||
+                 el.classList.contains('success')) && 
+                text.toLowerCase().includes('password') && 
+                text.toLowerCase().includes('updated')) {
+                el.style.display = 'none';
+                setTimeout(() => el.remove(), 100);
+            }
+        });
+        
+        messageElements.forEach(element => {
+            // Check if it contains text about password updates
+            if (element.textContent.toLowerCase().includes('password') && 
+                element.textContent.toLowerCase().includes('updated')) {
+                // Hide first, then remove to avoid flashing
+                element.style.display = 'none';
+                setTimeout(() => element.remove(), 100);
+            }
+        });
+
+        // Show welcome message when dashboard loads
+        // Check for password update messages first
+        let passwordUpdated = false;
+        {% if messages %}
+            {% for message in messages %}
+                {% if "password" in message.message|lower and "updated" in message.message|lower %}
+                    passwordUpdated = true;
+                    Swal.fire({
+                        title: 'Success',
+                        text: '{{ message }}',
+                        icon: 'success',
+                        confirmButtonColor: '#3a7bfd'
+                    });
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        // If we haven't shown a password update message, check referrer
+        if (!passwordUpdated) {
+            // Welcome toast notification
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            // Check if coming from password change page
+            if (document.referrer.includes('change_password')) {
+                Swal.fire({
+                    title: 'Success',
+                    text: 'Your password has been successfully updated!',
+                    icon: 'success',
+                    confirmButtonColor: '#3a7bfd'
+                });
+            } else {
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Welcome to your dashboard!',
+                    text: 'You are logged in successfully'
+                });
+            }
+        }
+    });
+
+    // Add SweetAlert confirmation for logout
+    document.addEventListener('DOMContentLoaded', function() {
+        const logoutLinks = document.querySelectorAll('.logout-link');
+        
+        logoutLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                Swal.fire({
+                    title: 'Logout Confirmation',
+                    text: 'Are you sure you want to logout?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3a7bfd',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, logout'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = this.getAttribute('href');
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}
